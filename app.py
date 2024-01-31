@@ -1,8 +1,8 @@
 from random import sample
 
-import gradio as gr
 from fastchat.serve import gradio_web_server
 from fastchat.serve.gradio_web_server import bot_response
+import gradio as gr
 
 # TODO(#1): Add more models.
 SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"]
