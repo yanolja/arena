@@ -12,13 +12,13 @@ import gradio as gr
 SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gemini-pro"]
 
 
-def user(user_message):
+def user(user_prompt):
   model_pair = sample(SUPPORTED_MODELS, 2)
   new_state_a = gradio_web_server.State(model_pair[0])
   new_state_b = gradio_web_server.State(model_pair[1])
 
   for state in [new_state_a, new_state_b]:
-    state.conv.append_message(state.conv.roles[0], user_message)
+    state.conv.append_message(state.conv.roles[0], user_prompt)
     state.conv.append_message(state.conv.roles[1], None)
     state.skip_next = False
 
@@ -34,7 +34,7 @@ def bot(state_a, state_b, request: gr.Request):
   for state in new_states:
     try:
       # TODO(#1): Allow user to set configuration.
-      # bot_response returns a generator yielding states and chatbots.
+      # bot_response returns a generator yielding states.
       generator = bot_response(state,
                                temperature=0.9,
                                top_p=0.9,
@@ -55,12 +55,21 @@ def bot(state_a, state_b, request: gr.Request):
 
     for i in range(2):
       try:
-        generator = next(generators[i])
-        new_state = generator[0]
+        yielded = next(generators[i])
+
+        # The generator yields a tuple, with the new state as the first item.
+        new_state = yielded[0]
         new_states[i] = new_state
-        # conv.messages is a list of [role, message].
-        new_responses[i] = new_state.conv.messages[-1][-1]
+
+        # The last item from 'messages' represents the response to the prompt.
+        bot_message = new_state.conv.messages[-1]
+
+        # Each message in conv.messages is structured as [role, message],
+        # so we extract the last message component.
+        new_responses[i] = bot_message[-1]
+
         stop = False
+
       except StopIteration:
         pass
 
