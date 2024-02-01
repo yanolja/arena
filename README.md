@@ -19,7 +19,7 @@
    Set your OpenAI API key as an environment variable and start the application:
 
    ```shell
-   OPENAI_API_KEY=<your key> python3 app.py
+   GCP_PROJECT_ID=<your project id> OPENAI_API_KEY=<your key> python3 app.py
    ```
 
-   Replace <your key> with your actual OpenAI API key.
+   Replace <your project id> and <your key> with your GCP project ID and OpenAI API key respectively.
