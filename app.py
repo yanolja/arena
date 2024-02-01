@@ -38,7 +38,7 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
   doc_id = uuid4().hex
   winner = VoteOptions(vote_button).name.lower()
 
-  # The 'messages' field in the state is an array of arrays, a data type
+  # The 'messages' field in the state is an array of arrays, which is
   # not supported by Firestore. Therefore, we convert it to a JSON string.
   model_a_conv = json.dumps(state_a.dict())
   model_b_conv = json.dumps(state_b.dict())
