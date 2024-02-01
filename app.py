@@ -28,9 +28,6 @@ def user(user_message):
 
 
 def bot(state_a, state_b, request: gr.Request):
-  if state_a is None or state_b is None:
-    raise RuntimeError(f"states cannot be None, got [{state_a}, {state_b}]")
-
   new_states = [state_a, state_b]
 
   generators = []
@@ -66,6 +63,11 @@ def bot(state_a, state_b, request: gr.Request):
         stop = False
       except StopIteration:
         pass
+
+      # TODO(#1): Narrow down the exception type.
+      except Exception as e:  # pylint: disable=broad-except
+        print(f"Error in generator: {e}")
+        raise e
 
     yield new_states + new_responses
 
