@@ -53,7 +53,7 @@ def bot(state_a, state_b, request: gr.Request):
   while True:
     stop = True
 
-    for i in range(2):
+    for i in range(len(generators)):
       try:
         yielded = next(generators[i])
 
