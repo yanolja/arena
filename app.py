@@ -2,14 +2,69 @@
 It provides a platform for comparing the responses of two LLMs. 
 """
 
+import enum
+import json
 from random import sample
+from uuid import uuid4
 
 from fastchat.serve import gradio_web_server
 from fastchat.serve.gradio_web_server import bot_response
+import firebase_admin
+from firebase_admin import firestore
 import gradio as gr
+
+db_app = firebase_admin.initialize_app()
+db = firestore.client()
 
 # TODO(#1): Add more models.
 SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gemini-pro"]
+
+SUPPORTED_TRANSLATION_LANGUAGES = ["Korean", "English"]
+
+
+class ResponseType(enum.Enum):
+  SUMMARIZE = "Summarize"
+  TRANSLATE = "Translate"
+
+
+class VoteOptions(enum.Enum):
+  MODEL_A = "Model A is better"
+  MODEL_B = "Model B is better"
+  TIE = "Tie"
+
+
+def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
+  winner = VoteOptions(vote_button).name.lower()
+
+  # The 'messages' field in the state is an array of arrays, a data type
+  # not supported by Firestore. Therefore, we convert it to a JSON string.
+  model_a_conv = json.dumps(state_a.dict())
+  model_b_conv = json.dumps(state_b.dict())
+
+  if res_type == ResponseType.SUMMARIZE.value:
+    doc_ref = db.collection("arena-summarizations").document(uuid4().hex)
+    doc_ref.set({
+        "model_a": state_a.model_name,
+        "model_b": state_b.model_name,
+        "model_a_conv": model_a_conv,
+        "model_b_conv": model_b_conv,
+        "winner": winner,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+    return
+
+  if res_type == ResponseType.TRANSLATE.value:
+    doc_ref = db.collection("arena-translations").document(uuid4().hex)
+    doc_ref.set({
+        "model_a": state_a.model_name,
+        "model_b": state_b.model_name,
+        "model_a_conv": model_a_conv,
+        "model_b_conv": model_b_conv,
+        "source_language": source_lang.lower(),
+        "target_language": target_lang.lower(),
+        "winner": winner,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
 
 
 def user(user_prompt):
@@ -85,6 +140,40 @@ def bot(state_a, state_b, request: gr.Request):
 
 
 with gr.Blocks() as app:
+  with gr.Row():
+    response_type_radio = gr.Radio(
+        [response_type.value for response_type in ResponseType],
+        label="Response type",
+        info="Choose the type of response you want from the model.")
+
+    source_language = gr.Dropdown(
+        choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        label="Source language",
+        info="Choose the source language for translation.",
+        interactive=True,
+        visible=False)
+    target_language = gr.Dropdown(
+        choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        label="Target language",
+        info="Choose the target language for translation.",
+        interactive=True,
+        visible=False)
+
+    def update_language_visibility(response_type):
+      if response_type != ResponseType.TRANSLATE.value:
+        return {
+            source_language: gr.Dropdown(visible=False),
+            target_language: gr.Dropdown(visible=False)
+        }
+
+      return {
+          source_language: gr.Dropdown(visible=True),
+          target_language: gr.Dropdown(visible=True)
+      }
+
+    response_type_radio.change(update_language_visibility, response_type_radio,
+                               [source_language, target_language])
+
   model_names = [gr.State(None), gr.State(None)]
   responses = [gr.State(None), gr.State(None)]
 
@@ -98,6 +187,26 @@ with gr.Blocks() as app:
     responses[0] = gr.Textbox(label="Model A", interactive=False)
     responses[1] = gr.Textbox(label="Model B", interactive=False)
 
+  # TODO(#1): Display it only after the user submits the prompt.
+  # TODO(#1): Block voting if the response_type is not set.
+  # TODO(#1): Block voting if the user already voted.
+  with gr.Row():
+    option_a = gr.Button(VoteOptions.MODEL_A.value)
+    option_a.click(
+        vote, states +
+        [option_a, response_type_radio, source_language, target_language])
+
+    option_b = gr.Button("Model B is better")
+    option_b.click(
+        vote, states +
+        [option_b, response_type_radio, source_language, target_language])
+
+    tie = gr.Button("Tie")
+    tie.click(
+        vote,
+        states + [tie, response_type_radio, source_language, target_language])
+
+  # TODO(#1): Hide it until the user votes.
   with gr.Accordion("Show models", open=False):
     with gr.Row():
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
