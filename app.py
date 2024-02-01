@@ -164,15 +164,10 @@ with gr.Blocks() as app:
         visible=False)
 
     def update_language_visibility(response_type):
-      if response_type != ResponseType.TRANSLATE.value:
-        return {
-            source_language: gr.Dropdown(visible=False),
-            target_language: gr.Dropdown(visible=False)
-        }
-
+      visible = response_type == ResponseType.TRANSLATE.value
       return {
-          source_language: gr.Dropdown(visible=True),
-          target_language: gr.Dropdown(visible=True)
+          source_language: gr.Dropdown(visible=visible),
+          target_language: gr.Dropdown(visible=visible)
       }
 
     response_type_radio.change(update_language_visibility, response_type_radio,
