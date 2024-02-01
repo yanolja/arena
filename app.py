@@ -35,6 +35,7 @@ class VoteOptions(enum.Enum):
 
 
 def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
+  doc_id = uuid4().hex
   winner = VoteOptions(vote_button).name.lower()
 
   # The 'messages' field in the state is an array of arrays, a data type
@@ -43,8 +44,9 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
   model_b_conv = json.dumps(state_b.dict())
 
   if res_type == ResponseType.SUMMARIZE.value:
-    doc_ref = db.collection("arena-summarizations").document(uuid4().hex)
+    doc_ref = db.collection("arena-summarizations").document(doc_id)
     doc_ref.set({
+        "id": doc_id,
         "model_a": state_a.model_name,
         "model_b": state_b.model_name,
         "model_a_conv": model_a_conv,
@@ -55,8 +57,9 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
     return
 
   if res_type == ResponseType.TRANSLATE.value:
-    doc_ref = db.collection("arena-translations").document(uuid4().hex)
+    doc_ref = db.collection("arena-translations").document(doc_id)
     doc_ref.set({
+        "id": doc_id,
         "model_a": state_a.model_name,
         "model_b": state_b.model_name,
         "model_a_conv": model_a_conv,
