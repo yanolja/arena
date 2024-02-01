@@ -1,3 +1,7 @@
+"""
+It provides a platform for comparing the responses of two LLMs. 
+"""
+
 from random import sample
 
 from fastchat.serve import gradio_web_server
