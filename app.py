@@ -19,7 +19,7 @@ db = firestore.client()
 # TODO(#1): Add more models.
 SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gemini-pro"]
 
-# TODO(#1): Add more languages.
+# TODO(#4): Add more languages.
 SUPPORTED_TRANSLATION_LANGUAGES = ["Korean", "English"]
 
 
@@ -186,9 +186,9 @@ with gr.Blocks() as app:
     responses[0] = gr.Textbox(label="Model A", interactive=False)
     responses[1] = gr.Textbox(label="Model B", interactive=False)
 
-  # TODO(#1): Display it only after the user submits the prompt.
-  # TODO(#1): Block voting if the response_type is not set.
-  # TODO(#1): Block voting if the user already voted.
+  # TODO(#5): Display it only after the user submits the prompt.
+  # TODO(#6): Block voting if the response_type is not set.
+  # TODO(#6): Block voting if the user already voted.
   with gr.Row():
     option_a = gr.Button(VoteOptions.MODEL_A.value)
     option_a.click(
@@ -205,7 +205,7 @@ with gr.Blocks() as app:
         vote,
         states + [tie, response_type_radio, source_language, target_language])
 
-  # TODO(#1): Hide it until the user votes.
+  # TODO(#7): Hide it until the user votes.
   with gr.Accordion("Show models", open=False):
     with gr.Row():
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
