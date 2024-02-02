@@ -19,8 +19,9 @@ db = firestore.client()
 # TODO(#1): Add more models.
 SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gemini-pro"]
 
-# TODO(#4): Add more languages.
-SUPPORTED_TRANSLATION_LANGUAGES = ["Korean", "English"]
+SUPPORTED_TRANSLATION_LANGUAGES = [
+    "Korean", "English", "Chinese", "Japanese", "Spanish", "French"
+]
 
 
 class ResponseType(enum.Enum):
