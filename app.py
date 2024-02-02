@@ -54,7 +54,6 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
         "winner": winner,
         "timestamp": firestore.SERVER_TIMESTAMP
     })
-    return
 
   if res_type == ResponseType.TRANSLATE.value:
     doc_ref = db.collection("arena-translations").document(doc_id)
@@ -70,6 +69,8 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
         "timestamp": firestore.SERVER_TIMESTAMP
     })
 
+  return gr.Row(visible=True)
+
 
 def user(user_prompt):
   model_pair = sample(SUPPORTED_MODELS, 2)
@@ -82,7 +83,8 @@ def user(user_prompt):
     state.skip_next = False
 
   return [
-      new_state_a, new_state_b, new_state_a.model_name, new_state_b.model_name
+      new_state_a, new_state_b, new_state_a.model_name, new_state_b.model_name,
+      gr.Row(visible=False)
   ]
 
 
@@ -182,36 +184,33 @@ with gr.Blocks() as app:
   prompt = gr.TextArea(label="Prompt", lines=4)
   submit = gr.Button()
 
-  with gr.Row():
-    responses[0] = gr.Textbox(label="Model A", interactive=False)
-    responses[1] = gr.Textbox(label="Model B", interactive=False)
+  with gr.Group():
+    with gr.Row():
+      responses[0] = gr.Textbox(label="Model A", interactive=False)
+      responses[1] = gr.Textbox(label="Model B", interactive=False)
+
+    with gr.Row(visible=False) as model_name_row:
+      model_names[0] = gr.Textbox(show_label=False)
+      model_names[1] = gr.Textbox(show_label=False)
 
   # TODO(#5): Display it only after the user submits the prompt.
   # TODO(#6): Block voting if the response_type is not set.
   # TODO(#6): Block voting if the user already voted.
   with gr.Row():
+    common_inputs = [response_type_radio, source_language, target_language]
+
     option_a = gr.Button(VoteOptions.MODEL_A.value)
-    option_a.click(
-        vote, states +
-        [option_a, response_type_radio, source_language, target_language])
+    option_a.click(vote, states + [option_a] + common_inputs, model_name_row)
 
     option_b = gr.Button("Model B is better")
-    option_b.click(
-        vote, states +
-        [option_b, response_type_radio, source_language, target_language])
+    option_b.click(vote, states + [option_b] + common_inputs, model_name_row)
 
     tie = gr.Button("Tie")
-    tie.click(
-        vote,
-        states + [tie, response_type_radio, source_language, target_language])
+    tie.click(vote, states + [tie] + common_inputs, model_name_row)
 
-  # TODO(#7): Hide it until the user votes.
-  with gr.Accordion("Show models", open=False):
-    with gr.Row():
-      model_names[0] = gr.Textbox(label="Model A", interactive=False)
-      model_names[1] = gr.Textbox(label="Model B", interactive=False)
-
-  submit.click(user, prompt, states + model_names,
+  submit.click(user,
+               prompt,
+               states + model_names + [model_name_row],
                queue=False).then(bot, states, states + responses)
 
 if __name__ == "__main__":
