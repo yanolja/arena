@@ -13,6 +13,8 @@ import firebase_admin
 from firebase_admin import firestore
 import gradio as gr
 
+from leaderboard import build_leaderboard
+
 db_app = firebase_admin.initialize_app()
 db = firestore.client()
 
@@ -213,6 +215,8 @@ with gr.Blocks() as app:
 
   submit.click(user, prompt, states + model_names,
                queue=False).then(bot, states, states + responses)
+
+  build_leaderboard(db)
 
 if __name__ == "__main__":
   # We need to enable queue to use generators.
