@@ -82,7 +82,8 @@ def user(user_prompt):
     state.skip_next = False
 
   return [
-      new_state_a, new_state_b, new_state_a.model_name, new_state_b.model_name
+      new_state_a, new_state_b, new_state_a.model_name, new_state_b.model_name,
+      gr.Row(visible=False)
   ]
 
 
@@ -137,10 +138,12 @@ def bot(state_a, state_b, request: gr.Request):
         print(f"Error in generator: {e}")
         raise e
 
-    yield new_states + new_responses
+    yield new_states + new_responses + [gr.Row(visible=False)]
 
     if stop:
       break
+
+  yield new_states + new_responses + [gr.Row(visible=True)]
 
 
 with gr.Blocks() as app:
@@ -186,10 +189,9 @@ with gr.Blocks() as app:
     responses[0] = gr.Textbox(label="Model A", interactive=False)
     responses[1] = gr.Textbox(label="Model B", interactive=False)
 
-  # TODO(#5): Display it only after the user submits the prompt.
   # TODO(#6): Block voting if the response_type is not set.
   # TODO(#6): Block voting if the user already voted.
-  with gr.Row():
+  with gr.Row(visible=False) as vote_buttons:
     option_a = gr.Button(VoteOptions.MODEL_A.value)
     option_a.click(
         vote, states +
@@ -211,8 +213,9 @@ with gr.Blocks() as app:
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
       model_names[1] = gr.Textbox(label="Model B", interactive=False)
 
-  submit.click(user, prompt, states + model_names,
-               queue=False).then(bot, states, states + responses)
+  submit.click(user, prompt, states + model_names + [vote_buttons],
+               queue=False).then(bot, states,
+                                 states + responses + [vote_buttons])
 
 if __name__ == "__main__":
   # We need to enable queue to use generators.
