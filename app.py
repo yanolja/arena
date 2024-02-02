@@ -143,7 +143,7 @@ def bot(state_a, state_b, request: gr.Request):
       break
 
 
-with gr.Blocks() as app:
+with gr.Blocks(title="Arena") as app:
   with gr.Row():
     response_type_radio = gr.Radio(
         [response_type.value for response_type in ResponseType],
