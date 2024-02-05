@@ -19,9 +19,9 @@
    Set your OpenAI API key as an environment variable and start the application:
 
    ```shell
-   OPENAI_API_KEY=<your key> python3 app.py
+   GOOGLE_CLOUD_PROJECT=<your project id> CREDENTIALS_PATH=<your crednetials path> OPENAI_API_KEY=<your key> python3 app.py
    ```
 
-   Replace `<your key>` with your GCP project ID.
+   Replace `<your project id>`, `<your crednetials path>`, and `<your key>` with your GCP project ID, the path to your GCP credentials file, and your OpenAI API key respectively.
 
    > To run the app with [auto-reloading](https://www.gradio.app/guides/developing-faster-with-reload-mode), use `gradio app.py --demo-name app` instead of `python3 app.py`.
