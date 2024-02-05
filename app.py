@@ -3,21 +3,22 @@ It provides a platform for comparing the responses of two LLMs.
 """
 
 import enum
-import json
 from random import sample
 from uuid import uuid4
 
-from fastchat.serve import gradio_web_server
-from fastchat.serve.gradio_web_server import bot_response
 import firebase_admin
 from firebase_admin import firestore
 import gradio as gr
+from litellm import completion
 
+# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
 db_app = firebase_admin.initialize_app()
 db = firestore.client()
 
 # TODO(#1): Add more models.
-SUPPORTED_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gemini-pro"]
+SUPPORTED_MODELS = [
+    "gpt-4", "gpt-4-0125-preview", "gpt-3.5-turbo", "gemini-pro"
+]
 
 # TODO(#4): Add more languages.
 SUPPORTED_TRANSLATION_LANGUAGES = ["Korean", "English"]
@@ -34,23 +35,20 @@ class VoteOptions(enum.Enum):
   TIE = "Tie"
 
 
-def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
+def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
+         user_prompt, res_type, source_lang, target_lang):
   doc_id = uuid4().hex
   winner = VoteOptions(vote_button).name.lower()
-
-  # The 'messages' field in the state is an array of arrays, which is
-  # not supported by Firestore. Therefore, we convert it to a JSON string.
-  model_a_conv = json.dumps(state_a.dict())
-  model_b_conv = json.dumps(state_b.dict())
 
   if res_type == ResponseType.SUMMARIZE.value:
     doc_ref = db.collection("arena-summarizations").document(doc_id)
     doc_ref.set({
         "id": doc_id,
-        "model_a": state_a.model_name,
-        "model_b": state_b.model_name,
-        "model_a_conv": model_a_conv,
-        "model_b_conv": model_b_conv,
+        "prompt": user_prompt,
+        "model_a": model_a_name,
+        "model_b": model_b_name,
+        "model_a_response": response_a,
+        "model_b_response": response_b,
         "winner": winner,
         "timestamp": firestore.SERVER_TIMESTAMP
     })
@@ -60,10 +58,11 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
     doc_ref = db.collection("arena-translations").document(doc_id)
     doc_ref.set({
         "id": doc_id,
-        "model_a": state_a.model_name,
-        "model_b": state_b.model_name,
-        "model_a_conv": model_a_conv,
-        "model_b_conv": model_b_conv,
+        "prompt": user_prompt,
+        "model_a": model_a_name,
+        "model_b": model_b_name,
+        "model_a_response": response_a,
+        "model_b_response": response_b,
         "source_language": source_lang.lower(),
         "target_language": target_lang.lower(),
         "winner": winner,
@@ -71,43 +70,38 @@ def vote(state_a, state_b, vote_button, res_type, source_lang, target_lang):
     })
 
 
-def user(user_prompt):
-  model_pair = sample(SUPPORTED_MODELS, 2)
-  new_state_a = gradio_web_server.State(model_pair[0])
-  new_state_b = gradio_web_server.State(model_pair[1])
+def response_generator(response: str):
+  for part in response:
+    content = part.choices[0].delta.content
+    if content is None:
+      continue
 
-  for state in [new_state_a, new_state_b]:
-    state.conv.append_message(state.conv.roles[0], user_prompt)
-    state.conv.append_message(state.conv.roles[1], None)
-    state.skip_next = False
-
-  return [
-      new_state_a, new_state_b, new_state_a.model_name, new_state_b.model_name,
-      gr.Row(visible=False)
-  ]
+    # To simulate a stream, we yield each character of the response.
+    for character in content:
+      yield character
 
 
-def bot(state_a, state_b, request: gr.Request):
-  new_states = [state_a, state_b]
+def get_responses(user_prompt):
+  models = sample(SUPPORTED_MODELS, 2)
 
   generators = []
-  for state in new_states:
+  for model in models:
     try:
       # TODO(#1): Allow user to set configuration.
-      # bot_response returns a generator yielding states.
-      generator = bot_response(state,
-                               temperature=0.9,
-                               top_p=0.9,
-                               max_new_tokens=100,
-                               request=request)
-      generators.append(generator)
+      response = completion(model=model,
+                            messages=[{
+                                "content": user_prompt,
+                                "role": "user"
+                            }],
+                            stream=True)
+      generators.append(response_generator(response))
 
     # TODO(#1): Narrow down the exception type.
     except Exception as e:  # pylint: disable=broad-except
       print(f"Error in bot_response: {e}")
       raise e
 
-  new_responses = [None, None]
+  responses = ["", ""]
 
   # It simulates concurrent response generation from two models.
   while True:
@@ -117,18 +111,13 @@ def bot(state_a, state_b, request: gr.Request):
       try:
         yielded = next(generators[i])
 
-        # The generator yields a tuple, with the new state as the first item.
-        new_state = yielded[0]
-        new_states[i] = new_state
+        if yielded is None:
+          continue
 
-        # The last item from 'messages' represents the response to the prompt.
-        bot_message = new_state.conv.messages[-1]
-
-        # Each message in conv.messages is structured as [role, message],
-        # so we extract the last message component.
-        new_responses[i] = bot_message[-1]
-
+        responses[i] += yielded
         stop = False
+
+        yield responses + models + [gr.Row(visible=False)]
 
       except StopIteration:
         pass
@@ -138,12 +127,10 @@ def bot(state_a, state_b, request: gr.Request):
         print(f"Error in generator: {e}")
         raise e
 
-    yield new_states + new_responses + [gr.Row(visible=False)]
-
     if stop:
       break
 
-  yield new_states + new_responses + [gr.Row(visible=True)]
+  yield responses + models + [gr.Row(visible=True)]
 
 
 with gr.Blocks() as app:
@@ -177,35 +164,21 @@ with gr.Blocks() as app:
                                [source_language, target_language])
 
   model_names = [gr.State(None), gr.State(None)]
-  responses = [gr.State(None), gr.State(None)]
-
-  # states stores FastChat-specific conversation states.
-  states = [gr.State(None), gr.State(None)]
+  response_boxes = [gr.State(None), gr.State(None)]
 
   prompt = gr.TextArea(label="Prompt", lines=4)
   submit = gr.Button()
 
   with gr.Row():
-    responses[0] = gr.Textbox(label="Model A", interactive=False)
-    responses[1] = gr.Textbox(label="Model B", interactive=False)
+    response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
+    response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
 
   # TODO(#6): Block voting if the response_type is not set.
   # TODO(#6): Block voting if the user already voted.
   with gr.Row(visible=False) as vote_buttons:
     option_a = gr.Button(VoteOptions.MODEL_A.value)
-    option_a.click(
-        vote, states +
-        [option_a, response_type_radio, source_language, target_language])
-
     option_b = gr.Button("Model B is better")
-    option_b.click(
-        vote, states +
-        [option_b, response_type_radio, source_language, target_language])
-
     tie = gr.Button("Tie")
-    tie.click(
-        vote,
-        states + [tie, response_type_radio, source_language, target_language])
 
   # TODO(#7): Hide it until the user votes.
   with gr.Accordion("Show models", open=False):
@@ -213,9 +186,15 @@ with gr.Blocks() as app:
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
       model_names[1] = gr.Textbox(label="Model B", interactive=False)
 
-  submit.click(user, prompt, states + model_names + [vote_buttons],
-               queue=False).then(bot, states,
-                                 states + responses + [vote_buttons])
+  submit.click(get_responses, prompt,
+               response_boxes + model_names + [vote_buttons])
+
+  common_inputs = response_boxes + model_names + [
+      prompt, response_type_radio, source_language, target_language
+  ]
+  option_a.click(vote, [option_a] + common_inputs)
+  option_b.click(vote, [option_b] + common_inputs)
+  tie.click(vote, [tie] + common_inputs)
 
 if __name__ == "__main__":
   # We need to enable queue to use generators.
