@@ -177,8 +177,8 @@ with gr.Blocks() as app:
   # TODO(#6): Block voting if the user already voted.
   with gr.Row(visible=False) as vote_buttons:
     option_a = gr.Button(VoteOptions.MODEL_A.value)
-    option_b = gr.Button("Model B is better")
-    tie = gr.Button("Tie")
+    option_b = gr.Button(VoteOptions.MODEL_B.value)
+    tie = gr.Button(VoteOptions.TIE.value)
 
   # TODO(#7): Hide it until the user votes.
   with gr.Accordion("Show models", open=False):
