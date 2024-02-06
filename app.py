@@ -133,7 +133,7 @@ def get_responses(user_prompt):
       break
 
 
-with gr.Blocks() as app:
+with gr.Blocks(title="Arena") as app:
   with gr.Row():
     response_type_radio = gr.Radio(
         [response_type.value for response_type in ResponseType],
