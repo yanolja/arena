@@ -11,6 +11,8 @@ from firebase_admin import firestore
 import gradio as gr
 from litellm import completion
 
+from leaderboard import build_leaderboard
+
 # TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
 db_app = firebase_admin.initialize_app()
 db = firestore.client()
@@ -193,6 +195,8 @@ with gr.Blocks() as app:
   option_a.click(vote, [option_a] + common_inputs)
   option_b.click(vote, [option_b] + common_inputs)
   tie.click(vote, [tie] + common_inputs)
+
+  build_leaderboard(db)
 
 if __name__ == "__main__":
   # We need to enable queue to use generators.
