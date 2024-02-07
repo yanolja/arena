@@ -53,6 +53,8 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   doc_id = uuid4().hex
   winner = VoteOptions(vote_button).name.lower()
 
+  deactivated_buttons = [gr.Button(interactive=False) for _ in range(3)]
+
   doc = {
       "id": doc_id,
       "prompt": user_prompt,
@@ -68,13 +70,21 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   if category == response.Category.SUMMARIZE.value:
     doc_ref = db.collection("arena-summarizations").document(doc_id)
     doc_ref.set(doc)
-    return
+
+    return deactivated_buttons
 
   if category == response.Category.TRANSLATE.value:
+    if not source_lang or not target_lang:
+      raise gr.Error("Please select source and target languages.")
+
     doc_ref = db.collection("arena-translations").document(doc_id)
-    doc["source_lang"] = source_lang.lower()
-    doc["target_lang"] = target_lang.lower()
+    doc["source_language"] = source_lang.lower()
+    doc["target_language"] = target_lang.lower()
     doc_ref.set(doc)
+
+    return deactivated_buttons
+
+  raise gr.Error("Please select a response type.")
 
 
 with gr.Blocks(title="Arena") as app:
@@ -118,12 +128,10 @@ with gr.Blocks(title="Arena") as app:
     response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
 
   # TODO(#5): Display it only after the user submits the prompt.
-  # TODO(#6): Block voting if the category is not set.
-  # TODO(#6): Block voting if the user already voted.
   with gr.Row():
     option_a = gr.Button(VoteOptions.MODEL_A.value)
-    option_b = gr.Button("Model B is better")
-    tie = gr.Button("Tie")
+    option_b = gr.Button(VoteOptions.MODEL_B.value)
+    tie = gr.Button(VoteOptions.TIE.value)
 
   # TODO(#7): Hide it until the user votes.
   with gr.Accordion("Show models", open=False):
@@ -131,19 +139,20 @@ with gr.Blocks(title="Arena") as app:
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
       model_names[1] = gr.Textbox(label="Model B", interactive=False)
 
+  vote_buttons = [option_a, option_b, tie]
   instruction_state = gr.State("")
 
-  submit.click(get_responses,
-               [prompt, category_radio, source_language, target_language],
-               response_boxes + model_names + [instruction_state])
+  submit.click(
+      get_responses, [prompt, category_radio, source_language, target_language],
+      response_boxes + model_names + vote_buttons + [instruction_state])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
       target_language
   ]
-  option_a.click(vote, [option_a] + common_inputs)
-  option_b.click(vote, [option_b] + common_inputs)
-  tie.click(vote, [tie] + common_inputs)
+  option_a.click(vote, [option_a] + common_inputs, vote_buttons)
+  option_b.click(vote, [option_b] + common_inputs, vote_buttons)
+  tie.click(vote, [tie] + common_inputs, vote_buttons)
 
   build_leaderboard(db)
 
