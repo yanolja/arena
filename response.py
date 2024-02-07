@@ -49,6 +49,8 @@ def get_responses(user_prompt, category, source_lang, target_lang):
 
   models = sample(SUPPORTED_MODELS, 2)
   instruction = get_instruction(category, source_lang, target_lang)
+  activated_vote_buttons = [gr.Button(interactive=True) for _ in range(3)]
+  deactivated_vote_buttons = [gr.Button(interactive=False) for _ in range(3)]
 
   generators = []
   for model in models:
@@ -86,9 +88,12 @@ def get_responses(user_prompt, category, source_lang, target_lang):
         responses[i] += yielded
         stop = False
 
-        yield responses + models + [
-            gr.Button(interactive=True) for _ in range(3)
-        ] + [instruction, gr.Row(visible=False)]
+        # model_name_row and vote_row are hidden during response generation.
+        yield responses + models + deactivated_vote_buttons + [
+            instruction,
+            gr.Row(visible=False),
+            gr.Row(visible=False)
+        ]
 
       except StopIteration:
         pass
@@ -100,3 +105,10 @@ def get_responses(user_prompt, category, source_lang, target_lang):
 
     if stop:
       break
+
+  # After generating the response, the vote_row should become visible,
+  # while the model_name_row should remain hidden.
+  yield responses + models + activated_vote_buttons + [
+      instruction, gr.Row(visible=False),
+      gr.Row(visible=True)
+  ]

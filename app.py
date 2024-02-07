@@ -133,8 +133,7 @@ with gr.Blocks(title="Arena") as app:
       model_names[0] = gr.Textbox(show_label=False)
       model_names[1] = gr.Textbox(show_label=False)
 
-  # TODO(#5): Display it only after the user submits the prompt.
-  with gr.Row():
+  with gr.Row(visible=False) as vote_row:
     option_a = gr.Button(VoteOptions.MODEL_A.value)
     option_b = gr.Button(VoteOptions.MODEL_B.value)
     tie = gr.Button(VoteOptions.TIE.value)
@@ -145,7 +144,7 @@ with gr.Blocks(title="Arena") as app:
   submit.click(
       get_responses, [prompt, category_radio, source_language, target_language],
       response_boxes + model_names + vote_buttons +
-      [instruction_state, model_name_row])
+      [instruction_state, model_name_row, vote_row])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
