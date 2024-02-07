@@ -88,7 +88,7 @@ def get_responses(user_prompt, category, source_lang, target_lang):
 
         yield responses + models + [
             gr.Button(interactive=True) for _ in range(3)
-        ] + [instruction]
+        ] + [instruction, gr.Row(visible=False)]
 
       except StopIteration:
         pass
