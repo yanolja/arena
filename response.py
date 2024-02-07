@@ -19,6 +19,7 @@ class Category(enum.Enum):
   TRANSLATE = "Translate"
 
 
+# TODO(#31): Let the model builders set the instruction.
 def get_instruction(category, source_lang, target_lang):
   if category == Category.SUMMARIZE.value:
     return "Summarize the following text in its original language."
@@ -37,6 +38,7 @@ def response_generator(response: str):
       yield character
 
 
+# TODO(#29): Return results simultaneously to prevent bias from generation speed.
 def get_responses(user_prompt, category, source_lang, target_lang):
   if not category:
     raise gr.Error("Please select a category.")
