@@ -144,7 +144,8 @@ with gr.Blocks(title="Arena") as app:
 
   submit.click(
       get_responses, [prompt, category_radio, source_language, target_language],
-      response_boxes + model_names + vote_buttons + [instruction_state])
+      response_boxes + model_names + vote_buttons +
+      [instruction_state, model_name_row])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
