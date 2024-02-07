@@ -139,17 +139,17 @@ with gr.Blocks(title="Arena") as app:
       model_names[0] = gr.Textbox(label="Model A", interactive=False)
       model_names[1] = gr.Textbox(label="Model B", interactive=False)
 
+  vote_buttons = [option_a, option_b, tie]
   instruction_state = gr.State("")
 
-  submit.click(get_responses,
-               [prompt, category_radio, source_language, target_language],
-               response_boxes + model_names + [instruction_state])
+  submit.click(
+      get_responses, [prompt, category_radio, source_language, target_language],
+      response_boxes + model_names + vote_buttons + [instruction_state])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
       target_language
   ]
-  vote_buttons = [option_a, option_b, tie]
   option_a.click(vote, [option_a] + common_inputs, vote_buttons)
   option_b.click(vote, [option_b] + common_inputs, vote_buttons)
   tie.click(vote, [tie] + common_inputs, vote_buttons)
