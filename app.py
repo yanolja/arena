@@ -13,7 +13,10 @@ from firebase_admin import firestore
 import gradio as gr
 from litellm import completion
 
+# Path to local credentials file, used in local development.
 CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH")
+
+# Credentials passed as an environment variable, used in deployment.
 CREDENTIALS = os.environ.get("CREDENTIALS")
 
 
