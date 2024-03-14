@@ -11,8 +11,14 @@ from firebase_admin import firestore
 import gradio as gr
 from litellm import completion
 
-# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
-db_app = firebase_admin.initialize_app()
+# Gradio's reload mode attempts to initialize the Firebase app multiple times
+# when the app is reloaded, resulting in an error. To avoid this, we try to
+# initialize the app and catch the error if it's already initialized.
+try:
+  firebase_admin.initialize_app()
+except ValueError:
+  firebase_admin.get_app()
+
 db = firestore.client()
 
 # TODO(#1): Add more models.
