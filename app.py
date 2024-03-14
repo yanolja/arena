@@ -88,6 +88,15 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
+def scroll_to_bottom_js(elem_id):
+  return f"""
+  () => {{
+    const element = document.querySelector("#{elem_id} textarea");
+    element.scrollTop = element.scrollHeight;
+  }}
+  """
+
+
 with gr.Blocks(title="Arena") as app:
   with gr.Row():
     category_radio = gr.Radio(
@@ -126,8 +135,21 @@ with gr.Blocks(title="Arena") as app:
 
   with gr.Group():
     with gr.Row():
-      response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
-      response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
+      response_a_elem_id = "responseA"
+      response_a_textbox = gr.Textbox(label="Model A",
+                                      interactive=False,
+                                      elem_id=response_a_elem_id)
+      response_a_textbox.change(fn=None,
+                                js=scroll_to_bottom_js(response_a_elem_id))
+      response_boxes[0] = response_a_textbox
+
+      response_b_elem_id = "responseB"
+      response_b_textbox = gr.Textbox(label="Model B",
+                                      interactive=False,
+                                      elem_id=response_b_elem_id)
+      response_b_textbox.change(fn=None,
+                                js=scroll_to_bottom_js(response_b_elem_id))
+      response_boxes[1] = response_b_textbox
 
     with gr.Row(visible=False) as model_name_row:
       model_names[0] = gr.Textbox(show_label=False)
