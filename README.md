@@ -38,3 +38,16 @@
 
 1. Set the `CREDENTIALS` environment variable in your deployment platform's settings to your credentials JSON string.
 2. The application will parse and use these credentials when deployed.
+
+# Hugging Face Spaces Configuration
+
+---
+
+title: Arena
+emoji: ⚔️
+colorFrom: red
+colorTo: purple
+sdk: gradio
+app_file: app.py
+
+---
