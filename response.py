@@ -27,18 +27,6 @@ def get_instruction(category, source_lang, target_lang):
     return f"Translate the following text from {source_lang} to {target_lang}."
 
 
-def response_generator(response: str):
-  for part in response:
-    content = part.choices[0].delta.content
-    if content is None:
-      continue
-
-    # To simulate a stream, we yield each character of the response.
-    for character in content:
-      yield character
-
-
-# TODO(#29): Return results simultaneously to prevent bias from generation speed.
 def get_responses(user_prompt, category, source_lang, target_lang):
   if not category:
     raise gr.Error("Please select a category.")
@@ -52,7 +40,7 @@ def get_responses(user_prompt, category, source_lang, target_lang):
   activated_vote_buttons = [gr.Button(interactive=True) for _ in range(3)]
   deactivated_vote_buttons = [gr.Button(interactive=False) for _ in range(3)]
 
-  generators = []
+  responses = []
   for model in models:
     try:
       # TODO(#1): Allow user to set configuration.
@@ -63,48 +51,23 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                             }, {
                                 "content": user_prompt,
                                 "role": "user"
-                            }],
-                            stream=True)
-      generators.append(response_generator(response))
+                            }])
+      responses.append(response.choices[0].message.content)
 
     # TODO(#1): Narrow down the exception type.
     except Exception as e:  # pylint: disable=broad-except
       print(f"Error in bot_response: {e}")
       raise e
 
-  responses = ["", ""]
-
-  # It simulates concurrent response generation from two models.
-  while True:
-    stop = True
-
-    for i in range(len(generators)):
-      try:
-        yielded = next(generators[i])
-
-        if yielded is None:
-          continue
-
-        responses[i] += yielded
-        stop = False
-
-        # model_name_row and vote_row are hidden during response generation.
-        yield responses + models + deactivated_vote_buttons + [
-            instruction,
-            gr.Row(visible=False),
-            gr.Row(visible=False)
-        ]
-
-      except StopIteration:
-        pass
-
-      # TODO(#1): Narrow down the exception type.
-      except Exception as e:  # pylint: disable=broad-except
-        print(f"Error in generator: {e}")
-        raise e
-
-    if stop:
-      break
+  # It simulates concurrent stream response generation from two models.
+  max_response_length = max(len(response) for response in responses)
+  for i in range(max_response_length):
+    yield [response[:i + 1] for response in responses
+          ] + models + deactivated_vote_buttons + [
+              instruction,
+              gr.Row(visible=False),
+              gr.Row(visible=False)
+          ]
 
   # After generating the response, the vote_row should become visible,
   # while the model_name_row should remain hidden.
