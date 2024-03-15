@@ -59,7 +59,7 @@ def get_responses(user_prompt, category, source_lang, target_lang):
       print(f"Error in bot_response: {e}")
       raise e
 
-  # It simulates concurrent stream response generation from two models.
+  # It simulates concurrent stream response generation.
   max_response_length = max(len(response) for response in responses)
   for i in range(max_response_length):
     yield [response[:i + 1] for response in responses
