@@ -86,7 +86,6 @@ def get_responses(user_prompt, category, source_lang, target_lang):
         responses[i] += yielded
         stop = False
 
-        # model_name_row and vote_row are hidden during response generation.
         yield responses + models + [instruction]
 
       except StopIteration:
@@ -100,6 +99,4 @@ def get_responses(user_prompt, category, source_lang, target_lang):
     if stop:
       break
 
-  # After generating the response, the vote_row should become visible,
-  # while the model_name_row should remain hidden.
   yield responses + models + [instruction]
