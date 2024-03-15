@@ -3,15 +3,24 @@ This module contains functions for generating responses using LLMs.
 """
 
 import enum
+import json
+import os
 from random import sample
 
+from google.cloud import secretmanager
 import gradio as gr
 from litellm import completion
 
-# TODO(#1): Add more models.
-SUPPORTED_MODELS = [
-    "gpt-4", "gpt-4-0125-preview", "gpt-3.5-turbo", "gemini-pro"
-]
+GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+MODELS_SECRET = os.environ.get("MODELS_SECRET")
+
+secretmanagerClient = secretmanager.SecretManagerServiceClient()
+models_secret = secretmanagerClient.access_secret_version(
+    name=secretmanagerClient.secret_version_path(GOOGLE_CLOUD_PROJECT,
+                                                 MODELS_SECRET, "latest"))
+decoded_secret = models_secret.payload.data.decode("UTF-8")
+
+supported_models = json.loads(decoded_secret)
 
 
 class Category(enum.Enum):
@@ -35,16 +44,25 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                                                not target_lang):
     raise gr.Error("Please select source and target languages.")
 
-  models = sample(SUPPORTED_MODELS, 2)
+  models = sample(list(supported_models), 2)
   instruction = get_instruction(category, source_lang, target_lang)
   activated_vote_buttons = [gr.Button(interactive=True) for _ in range(3)]
   deactivated_vote_buttons = [gr.Button(interactive=False) for _ in range(3)]
 
   responses = []
   for model in models:
+    model_config = supported_models[model]
+
+    model_name = model_config[
+        "provider"] + "/" + model if "provider" in model_config else model
+    api_key = model_config.get("apiKey", None)
+    api_base = model_config.get("apiBase", None)
+
     try:
       # TODO(#1): Allow user to set configuration.
-      response = completion(model=model,
+      response = completion(model=model_name,
+                            api_key=api_key,
+                            api_base=api_base,
                             messages=[{
                                 "content": instruction,
                                 "role": "system"
