@@ -4,10 +4,37 @@ It provides a leaderboard component.
 
 from collections import defaultdict
 import enum
+import json
 import math
+import os
 
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
 import gradio as gr
 import pandas as pd
+
+# Path to local credentials file, used in local development.
+CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH")
+
+# Credentials passed as an environment variable, used in deployment.
+CREDENTIALS = os.environ.get("CREDENTIALS")
+
+
+def get_credentials():
+  # Set credentials using a file in a local environment, if available.
+  if CREDENTIALS_PATH and os.path.exists(CREDENTIALS_PATH):
+    return credentials.Certificate(CREDENTIALS_PATH)
+
+  # Use environment variable for credentials when the file is not found,
+  # as credentials should not be public.
+  json_cred = json.loads(CREDENTIALS)
+  return credentials.Certificate(json_cred)
+
+
+# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
+firebase_admin.initialize_app(get_credentials())
+db = firestore.client()
 
 
 class LeaderboardTab(enum.Enum):
@@ -35,17 +62,16 @@ def compute_elo(battles, k=4, scale=400, base=10, initial_rating=1000):
   return rating
 
 
-def get_docs(tab, db):
-  if tab.label == LeaderboardTab.SUMMARIZATION.value:
+def get_docs(tab):
+  if tab == LeaderboardTab.SUMMARIZATION:
     return db.collection("arena-summarizations").order_by("timestamp").stream()
 
-  if tab.label == LeaderboardTab.TRANSLATION.value:
+  if tab == LeaderboardTab.TRANSLATION:
     return db.collection("arena-translations").order_by("timestamp").stream()
 
 
-# TODO(#8): Update the value periodically.
-def load_elo_ratings(tab, db):
-  docs = get_docs(tab, db)
+def load_elo_ratings(tab):
+  docs = get_docs(tab)
 
   battles = []
   for doc in docs:
@@ -64,15 +90,31 @@ def load_elo_ratings(tab, db):
           for i, (model, rating) in enumerate(sorted_ratings)]
 
 
-def build_leaderboard(db):
+def load_summarization_elo_ratings():
+  return load_elo_ratings(LeaderboardTab.SUMMARIZATION)
+
+
+def load_translation_elo_ratings():
+  return load_elo_ratings(LeaderboardTab.TRANSLATION)
+
+
+LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
+LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
+
+
+def build_leaderboard():
   with gr.Tabs():
-    with gr.Tab(LeaderboardTab.SUMMARIZATION.value) as summarization_tab:
+    with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_elo_ratings(summarization_tab, db))
+                   value=load_summarization_elo_ratings,
+                   every=LEADERBOARD_UPDATE_INTERVAL)
+      gr.Markdown(LEADERBOARD_INFO)
 
     # TODO(#9): Add language filter options.
-    with gr.Tab(LeaderboardTab.TRANSLATION.value) as translation_tab:
+    with gr.Tab(LeaderboardTab.TRANSLATION.value):
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_elo_ratings(translation_tab, db))
+                   value=load_translation_elo_ratings,
+                   every=LEADERBOARD_UPDATE_INTERVAL)
+      gr.Markdown(LEADERBOARD_INFO)

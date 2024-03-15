@@ -2,40 +2,15 @@
 It provides a platform for comparing the responses of two LLMs. 
 """
 import enum
-import json
-import os
 from uuid import uuid4
 
-import firebase_admin
-from firebase_admin import credentials
 from firebase_admin import firestore
 import gradio as gr
 
 from leaderboard import build_leaderboard
+from leaderboard import db
 import response
 from response import get_responses
-
-# Path to local credentials file, used in local development.
-CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH")
-
-# Credentials passed as an environment variable, used in deployment.
-CREDENTIALS = os.environ.get("CREDENTIALS")
-
-
-def get_credentials():
-  # Set credentials using a file in a local environment, if available.
-  if CREDENTIALS_PATH and os.path.exists(CREDENTIALS_PATH):
-    return credentials.Certificate(CREDENTIALS_PATH)
-
-  # Use environment variable for credentials when the file is not found,
-  # as credentials should not be public.
-  json_cred = json.loads(CREDENTIALS)
-  return credentials.Certificate(json_cred)
-
-
-# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
-firebase_admin.initialize_app(get_credentials())
-db = firestore.client()
 
 SUPPORTED_TRANSLATION_LANGUAGES = [
     "Korean", "English", "Chinese", "Japanese", "Spanish", "French"
@@ -88,6 +63,15 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
+def scroll_to_bottom_js(elem_id):
+  return f"""
+  () => {{
+    const element = document.querySelector("#{elem_id} textarea");
+    element.scrollTop = element.scrollHeight;
+  }}
+  """
+
+
 with gr.Blocks(title="Arena") as app:
   with gr.Row():
     category_radio = gr.Radio(
@@ -126,8 +110,21 @@ with gr.Blocks(title="Arena") as app:
 
   with gr.Group():
     with gr.Row():
-      response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
-      response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
+      response_a_elem_id = "responseA"
+      response_a_textbox = gr.Textbox(label="Model A",
+                                      interactive=False,
+                                      elem_id=response_a_elem_id)
+      response_a_textbox.change(fn=None,
+                                js=scroll_to_bottom_js(response_a_elem_id))
+      response_boxes[0] = response_a_textbox
+
+      response_b_elem_id = "responseB"
+      response_b_textbox = gr.Textbox(label="Model B",
+                                      interactive=False,
+                                      elem_id=response_b_elem_id)
+      response_b_textbox.change(fn=None,
+                                js=scroll_to_bottom_js(response_b_elem_id))
+      response_boxes[1] = response_b_textbox
 
     with gr.Row(visible=False) as model_name_row:
       model_names[0] = gr.Textbox(show_label=False)
@@ -166,7 +163,7 @@ with gr.Blocks(title="Arena") as app:
   option_b.click(vote, [option_b] + common_inputs, common_outputs)
   tie.click(vote, [tie] + common_inputs, common_outputs)
 
-  build_leaderboard(db)
+  build_leaderboard()
 
 if __name__ == "__main__":
   # We need to enable queue to use generators.
