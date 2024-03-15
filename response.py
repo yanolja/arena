@@ -22,7 +22,7 @@ class Category(enum.Enum):
 # TODO(#31): Let the model builders set the instruction.
 def get_instruction(category, source_lang, target_lang):
   if category == Category.SUMMARIZE.value:
-    return "Summarize the following text in its original language."
+    return "Summarize the following text, maintaining the original language of the text in the summary."  # pylint: disable=line-too-long
   if category == Category.TRANSLATE.value:
     return f"Translate the following text from {source_lang} to {target_lang}."
 
