@@ -8,16 +8,21 @@ import os
 from random import sample
 
 from google.cloud import secretmanager
+from google.oauth2 import service_account
 import gradio as gr
 from litellm import completion
+
+from credentials import get_credentials_json
 
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 MODELS_SECRET = os.environ.get("MODELS_SECRET")
 
-secretmanagerClient = secretmanager.SecretManagerServiceClient()
-models_secret = secretmanagerClient.access_secret_version(
-    name=secretmanagerClient.secret_version_path(GOOGLE_CLOUD_PROJECT,
-                                                 MODELS_SECRET, "latest"))
+secretmanager_client = secretmanager.SecretManagerServiceClient(
+    credentials=service_account.Credentials.from_service_account_info(
+        get_credentials_json()))
+models_secret = secretmanager_client.access_secret_version(
+    name=secretmanager_client.secret_version_path(GOOGLE_CLOUD_PROJECT,
+                                                  MODELS_SECRET, "latest"))
 decoded_secret = models_secret.payload.data.decode("UTF-8")
 
 supported_models = json.loads(decoded_secret)
