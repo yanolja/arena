@@ -77,8 +77,8 @@ def get_responses(user_prompt, category, source_lang, target_lang):
 
     # TODO(#1): Narrow down the exception type.
     except Exception as e:  # pylint: disable=broad-except
-      print(f"Error in bot_response: {e}")
-      raise e
+      print(f"Error with model {model}: {e}")
+      raise gr.Error("Failed to get response. Please try again.")
 
   # It simulates concurrent stream response generation.
   max_response_length = max(len(response) for response in responses)
