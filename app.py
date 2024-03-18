@@ -147,6 +147,7 @@ with gr.Blocks(title="Arena") as app:
                      ] + [gr.Button(interactive=True) for _ in range(3)],
           outputs=[submit, vote_row] + vote_buttons)
 
+  # TODO(#42): Hide vote buttons until response generation is successful.
   submit.click(fn=lambda: [
       gr.Button(interactive=False),
       gr.Row(visible=False),
