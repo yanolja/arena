@@ -139,9 +139,21 @@ with gr.Blocks(title="Arena") as app:
   instruction_state = gr.State("")
 
   submit.click(
-      get_responses, [prompt, category_radio, source_language, target_language],
-      response_boxes + model_names + vote_buttons +
-      [instruction_state, model_name_row, vote_row])
+      fn=get_responses,
+      inputs=[prompt, category_radio, source_language, target_language],
+      outputs=response_boxes + model_names + [instruction_state]).then(
+          fn=lambda: [gr.Button(interactive=True),
+                      gr.Row(visible=True)
+                     ] + [gr.Button(interactive=True) for _ in range(3)],
+          outputs=[submit, vote_row] + vote_buttons)
+
+  # TODO(#42): Hide vote buttons until response generation is successful.
+  submit.click(fn=lambda: [
+      gr.Button(interactive=False),
+      gr.Row(visible=False),
+      gr.Row(visible=False)
+  ],
+               outputs=[submit, vote_row, model_name_row])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,

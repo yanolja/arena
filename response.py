@@ -51,8 +51,6 @@ def get_responses(user_prompt, category, source_lang, target_lang):
 
   models = sample(list(supported_models), 2)
   instruction = get_instruction(category, source_lang, target_lang)
-  activated_vote_buttons = [gr.Button(interactive=True) for _ in range(3)]
-  deactivated_vote_buttons = [gr.Button(interactive=False) for _ in range(3)]
 
   responses = []
   for model in models:
@@ -85,16 +83,6 @@ def get_responses(user_prompt, category, source_lang, target_lang):
   # It simulates concurrent stream response generation.
   max_response_length = max(len(response) for response in responses)
   for i in range(max_response_length):
-    yield [response[:i + 1] for response in responses
-          ] + models + deactivated_vote_buttons + [
-              instruction,
-              gr.Row(visible=False),
-              gr.Row(visible=False)
-          ]
+    yield [response[:i + 1] for response in responses] + models + [instruction]
 
-  # After generating the response, the vote_row should become visible,
-  # while the model_name_row should remain hidden.
-  yield responses + models + activated_vote_buttons + [
-      instruction, gr.Row(visible=False),
-      gr.Row(visible=True)
-  ]
+  yield responses + models + [instruction]
