@@ -1,4 +1,4 @@
 venv
 *.log
 __pycache__
-credentials.json
+credentials*.json
