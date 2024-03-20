@@ -64,6 +64,9 @@ def load_elo_ratings(tab):
         "winner": data["winner"]
     })
 
+  if not battles:
+    return
+
   battles = pd.DataFrame(battles)
   ratings = compute_elo(battles)
 
