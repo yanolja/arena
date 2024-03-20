@@ -72,7 +72,15 @@ def scroll_to_bottom_js(elem_id):
   """
 
 
-with gr.Blocks(title="Arena") as app:
+# Removes the persistent orange border from the leaderboard, which
+# appears due to the 'generating' class when using the 'every' parameter.
+css = """
+.leaderboard .generating {
+  border: none;
+}
+"""
+
+with gr.Blocks(title="Arena", css=css) as app:
   with gr.Row():
     category_radio = gr.Radio(
         [category.value for category in response.Category],

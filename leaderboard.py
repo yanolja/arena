@@ -90,7 +90,8 @@ def build_leaderboard():
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
                    value=load_summarization_elo_ratings,
-                   every=LEADERBOARD_UPDATE_INTERVAL)
+                   every=LEADERBOARD_UPDATE_INTERVAL,
+                   elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
 
     # TODO(#9): Add language filter options.
@@ -98,5 +99,6 @@ def build_leaderboard():
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
                    value=load_translation_elo_ratings,
-                   every=LEADERBOARD_UPDATE_INTERVAL)
+                   every=LEADERBOARD_UPDATE_INTERVAL,
+                   elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
