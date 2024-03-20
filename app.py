@@ -9,12 +9,9 @@ import gradio as gr
 
 from leaderboard import build_leaderboard
 from leaderboard import db
+from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
 import response
 from response import get_responses
-
-SUPPORTED_TRANSLATION_LANGUAGES = [
-    "Korean", "English", "Chinese", "Japanese", "Spanish", "French"
-]
 
 
 class VoteOptions(enum.Enum):

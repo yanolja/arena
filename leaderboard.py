@@ -9,6 +9,7 @@ import math
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from google.cloud.firestore_v1 import base_query
 import gradio as gr
 import pandas as pd
 
@@ -17,6 +18,10 @@ from credentials import get_credentials_json
 # TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
 firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
 db = firestore.client()
+
+SUPPORTED_TRANSLATION_LANGUAGES = [
+    "Korean", "English", "Chinese", "Japanese", "Spanish", "French"
+]
 
 
 class LeaderboardTab(enum.Enum):
@@ -44,16 +49,26 @@ def compute_elo(battles, k=4, scale=400, base=10, initial_rating=1000):
   return rating
 
 
-def get_docs(tab):
+def get_docs(tab: str, source_lang: str = None, target_lang: str = None):
   if tab == LeaderboardTab.SUMMARIZATION:
     return db.collection("arena-summarizations").order_by("timestamp").stream()
 
   if tab == LeaderboardTab.TRANSLATION:
-    return db.collection("arena-translations").order_by("timestamp").stream()
+    collection = db.collection("arena-translations").order_by("timestamp")
+
+    if source_lang:
+      collection = collection.where(filter=base_query.FieldFilter(
+          "source_language", "==", source_lang.lower()))
+
+    if target_lang:
+      collection = collection.where(filter=base_query.FieldFilter(
+          "target_language", "==", target_lang.lower()))
+
+    return collection.stream()
 
 
-def load_elo_ratings(tab):
-  docs = get_docs(tab)
+def load_elo_ratings(tab, source_lang: str = None, target_lang: str = None):
+  docs = get_docs(tab, source_lang, target_lang)
 
   battles = []
   for doc in docs:
@@ -75,16 +90,27 @@ def load_elo_ratings(tab):
           for i, (model, rating) in enumerate(sorted_ratings)]
 
 
-def load_summarization_elo_ratings():
-  return load_elo_ratings(LeaderboardTab.SUMMARIZATION)
-
-
-def load_translation_elo_ratings():
-  return load_elo_ratings(LeaderboardTab.TRANSLATION)
-
-
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
+
+DEFAULT_FILTER_OPTIONS = {
+    "source_language": "English",
+    "target_language": "Spanish"
+}
+
+filtered_dataframe = gr.DataFrame(
+    headers=["Rank", "Model", "Elo rating"],
+    datatype=["number", "str", "number"],
+    value=lambda: load_elo_ratings(
+        LeaderboardTab.TRANSLATION, DEFAULT_FILTER_OPTIONS[
+            "source_language"], DEFAULT_FILTER_OPTIONS["target_language"]),
+    elem_classes="leaderboard")
+
+
+def update_filtered_leaderboard(source_lang, target_lang):
+  new_value = load_elo_ratings(LeaderboardTab.TRANSLATION, source_lang,
+                               target_lang)
+  return gr.update(value=new_value)
 
 
 def build_leaderboard():
@@ -92,16 +118,38 @@ def build_leaderboard():
     with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_summarization_elo_ratings,
+                   value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION),
                    every=LEADERBOARD_UPDATE_INTERVAL,
                    elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
 
-    # TODO(#9): Add language filter options.
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
+      with gr.Accordion("Filter", open=False):
+        with gr.Row():
+          source_language = gr.Dropdown(
+              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              label="Source language",
+              value=DEFAULT_FILTER_OPTIONS["source_language"],
+              interactive=True)
+          target_language = gr.Dropdown(
+              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              label="Target language",
+              value=DEFAULT_FILTER_OPTIONS["target_language"],
+              interactive=True)
+
+          source_language.change(fn=update_filtered_leaderboard,
+                                 inputs=[source_language, target_language],
+                                 outputs=filtered_dataframe)
+          target_language.change(fn=update_filtered_leaderboard,
+                                 inputs=[source_language, target_language],
+                                 outputs=filtered_dataframe)
+
+        with gr.Row():
+          filtered_dataframe.render()
+
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_translation_elo_ratings,
+                   value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION),
                    every=LEADERBOARD_UPDATE_INTERVAL,
                    elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
