@@ -9,7 +9,9 @@ import math
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from google.cloud.firestore_v1 import base_query
 import gradio as gr
+import lingua
 import pandas as pd
 
 from credentials import get_credentials_json
@@ -44,16 +46,24 @@ def compute_elo(battles, k=4, scale=400, base=10, initial_rating=1000):
   return rating
 
 
-def get_docs(tab):
+def get_docs(tab, summary_lang: str = None):
   if tab == LeaderboardTab.SUMMARIZATION:
-    return db.collection("arena-summarizations").order_by("timestamp").stream()
+    collection = db.collection("arena-summarizations").order_by("timestamp")
+
+    if summary_lang:
+      collection = collection.where(filter=base_query.FieldFilter(
+          "model_a_response_language", "==", summary_lang.lower())).where(
+              filter=base_query.FieldFilter("model_b_response_language", "==",
+                                            summary_lang.lower()))
+
+    return collection.stream()
 
   if tab == LeaderboardTab.TRANSLATION:
     return db.collection("arena-translations").order_by("timestamp").stream()
 
 
-def load_elo_ratings(tab):
-  docs = get_docs(tab)
+def load_elo_ratings(tab, summary_lang: str = None):
+  docs = get_docs(tab, summary_lang)
 
   battles = []
   for doc in docs:
@@ -64,6 +74,9 @@ def load_elo_ratings(tab):
         "winner": data["winner"]
     })
 
+  if not battles:
+    return
+
   battles = pd.DataFrame(battles)
   ratings = compute_elo(battles)
 
@@ -72,24 +85,42 @@ def load_elo_ratings(tab):
           for i, (model, rating) in enumerate(sorted_ratings)]
 
 
-def load_summarization_elo_ratings():
-  return load_elo_ratings(LeaderboardTab.SUMMARIZATION)
-
-
-def load_translation_elo_ratings():
-  return load_elo_ratings(LeaderboardTab.TRANSLATION)
-
-
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
+
+filtered_summarization = gr.DataFrame(headers=["Rank", "Model", "Elo rating"],
+                                      datatype=["number", "str", "number"])
+
+
+def update_filtered_summarization(summary_lang: str):
+  new_value = load_elo_ratings(LeaderboardTab.SUMMARIZATION, summary_lang)
+  return gr.update(value=new_value)
 
 
 def build_leaderboard():
   with gr.Tabs():
     with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
+      with gr.Accordion("Filter", open=False):
+        with gr.Row():
+          languages = [
+              language.name.capitalize() for language in lingua.Language.all()
+          ]
+          summary_language = gr.Dropdown(choices=languages,
+                                         value="English",
+                                         label="Summary language",
+                                         interactive=True)
+
+          apply_button = gr.Button("Apply")
+          apply_button.click(fn=update_filtered_summarization,
+                             inputs=[summary_language],
+                             outputs=filtered_summarization)
+
+        with gr.Row():
+          filtered_summarization.render()
+
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_summarization_elo_ratings,
+                   value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION),
                    every=LEADERBOARD_UPDATE_INTERVAL)
       gr.Markdown(LEADERBOARD_INFO)
 
@@ -97,6 +128,6 @@ def build_leaderboard():
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
-                   value=load_translation_elo_ratings,
+                   value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION),
                    every=LEADERBOARD_UPDATE_INTERVAL)
       gr.Markdown(LEADERBOARD_INFO)

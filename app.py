@@ -6,14 +6,17 @@ from uuid import uuid4
 
 from firebase_admin import firestore
 import gradio as gr
+import lingua
 
 from leaderboard import build_leaderboard
 from leaderboard import db
 import response
 from response import get_responses
 
+detector = lingua.LanguageDetectorBuilder.from_all_languages().build()
+
 SUPPORTED_TRANSLATION_LANGUAGES = [
-    "Korean", "English", "Chinese", "Japanese", "Spanish", "French"
+    language.name.capitalize() for language in lingua.Language.all()
 ]
 
 
@@ -44,7 +47,12 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   }
 
   if category == response.Category.SUMMARIZE.value:
+    language_a = detector.detect_language_of(response_a)
+    language_b = detector.detect_language_of(response_b)
+
     doc_ref = db.collection("arena-summarizations").document(doc_id)
+    doc["model_a_response_language"] = language_a.name.lower()
+    doc["model_b_response_language"] = language_b.name.lower()
     doc_ref.set(doc)
 
     return outputs
