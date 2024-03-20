@@ -93,8 +93,18 @@ def load_elo_ratings(tab, source_lang: str = None, target_lang: str = None):
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
-filtered_dataframe = gr.DataFrame(headers=["Rank", "Model", "Elo rating"],
-                                  datatype=["number", "str", "number"])
+DEFAULT_FILTER_OPTIONS = {
+    "source_language": "English",
+    "target_language": "Spanish"
+}
+
+filtered_dataframe = gr.DataFrame(
+    headers=["Rank", "Model", "Elo rating"],
+    datatype=["number", "str", "number"],
+    value=lambda: load_elo_ratings(
+        LeaderboardTab.TRANSLATION, DEFAULT_FILTER_OPTIONS[
+            "source_language"], DEFAULT_FILTER_OPTIONS["target_language"]),
+    elem_classes="leaderboard")
 
 
 def update_filtered_leaderboard(source_lang, target_lang):
@@ -116,17 +126,23 @@ def build_leaderboard():
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
       with gr.Accordion("Filter", open=False):
         with gr.Row():
-          source_language = gr.Dropdown(choices=SUPPORTED_TRANSLATION_LANGUAGES,
-                                        label="Source language",
-                                        interactive=True)
-          target_language = gr.Dropdown(choices=SUPPORTED_TRANSLATION_LANGUAGES,
-                                        label="Target language",
-                                        interactive=True)
+          source_language = gr.Dropdown(
+              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              label="Source language",
+              value=DEFAULT_FILTER_OPTIONS["source_language"],
+              interactive=True)
+          target_language = gr.Dropdown(
+              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              label="Target language",
+              value=DEFAULT_FILTER_OPTIONS["target_language"],
+              interactive=True)
 
-          apply_button = gr.Button("Apply")
-          apply_button.click(fn=update_filtered_leaderboard,
-                             inputs=[source_language, target_language],
-                             outputs=filtered_dataframe)
+          source_language.change(fn=update_filtered_leaderboard,
+                                 inputs=[source_language, target_language],
+                                 outputs=filtered_dataframe)
+          target_language.change(fn=update_filtered_leaderboard,
+                                 inputs=[source_language, target_language],
+                                 outputs=filtered_dataframe)
 
         with gr.Row():
           filtered_dataframe.render()
