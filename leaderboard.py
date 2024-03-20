@@ -88,8 +88,13 @@ def load_elo_ratings(tab, summary_lang: str = None):
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
-filtered_summarization = gr.DataFrame(headers=["Rank", "Model", "Elo rating"],
-                                      datatype=["number", "str", "number"])
+DEFAULT_SUMMARY_LANG_FILTER = "English"
+filtered_summarization = gr.DataFrame(
+    headers=["Rank", "Model", "Elo rating"],
+    datatype=["number", "str", "number"],
+    value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION,
+                                   DEFAULT_SUMMARY_LANG_FILTER),
+    elem_classes="leaderboard")
 
 
 def update_filtered_summarization(summary_lang: str):
@@ -106,14 +111,12 @@ def build_leaderboard():
               language.name.capitalize() for language in lingua.Language.all()
           ]
           summary_language = gr.Dropdown(choices=languages,
-                                         value="English",
+                                         value=DEFAULT_SUMMARY_LANG_FILTER,
                                          label="Summary language",
                                          interactive=True)
-
-          apply_button = gr.Button("Apply")
-          apply_button.click(fn=update_filtered_summarization,
-                             inputs=[summary_language],
-                             outputs=filtered_summarization)
+          summary_language.change(fn=update_filtered_summarization,
+                                  inputs=[summary_language],
+                                  outputs=filtered_summarization)
 
         with gr.Row():
           filtered_summarization.render()
