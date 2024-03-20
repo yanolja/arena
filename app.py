@@ -14,6 +14,8 @@ from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
 import response
 from response import get_responses
 
+detector = lingua.LanguageDetectorBuilder.from_all_languages().build()
+
 
 class VoteOptions(enum.Enum):
   MODEL_A = "Model A is better"
