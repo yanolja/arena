@@ -79,8 +79,8 @@ def load_elo_ratings(tab, source_lang: str = None, target_lang: str = None):
         "winner": data["winner"]
     })
 
-  if len(battles) == 0:
-    return []
+  if not battles:
+    return
 
   battles = pd.DataFrame(battles)
   ratings = compute_elo(battles)
@@ -109,7 +109,8 @@ def build_leaderboard():
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
                    value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION),
-                   every=LEADERBOARD_UPDATE_INTERVAL)
+                   every=LEADERBOARD_UPDATE_INTERVAL,
+                   elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
 
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
@@ -133,5 +134,6 @@ def build_leaderboard():
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
                    value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION),
-                   every=LEADERBOARD_UPDATE_INTERVAL)
+                   every=LEADERBOARD_UPDATE_INTERVAL,
+                   elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
