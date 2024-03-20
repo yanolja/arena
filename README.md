@@ -34,6 +34,7 @@ pinned: false
    MODELS_SECRET=<your secret> \
    OPENAI_API_KEY=<your key> \
    ANTHROPIC_API_KEY=<your key> \
+   MISTRAL_API_KEY=<your key> \
    python3 app.py
    ```
 
