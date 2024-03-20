@@ -149,13 +149,12 @@ with gr.Blocks(title="Arena", css=css) as app:
   submit.click(
       fn=get_responses,
       inputs=[prompt, category_radio, source_language, target_language],
-      outputs=response_boxes + model_names + [instruction_state]).then(
-          fn=lambda: [gr.Button(interactive=True),
-                      gr.Row(visible=True)
+      outputs=response_boxes + model_names + [instruction_state]).success(
+          fn=lambda: [gr.Row(visible=True)
                      ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[submit, vote_row] + vote_buttons)
+          outputs=[vote_row] + vote_buttons).then(
+              fn=lambda: [gr.Button(interactive=True)], outputs=[submit])
 
-  # TODO(#42): Hide vote buttons until response generation is successful.
   submit.click(fn=lambda: [
       gr.Button(interactive=False),
       gr.Row(visible=False),
