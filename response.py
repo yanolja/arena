@@ -56,9 +56,17 @@ class Category(enum.Enum):
 # TODO(#31): Let the model builders set the instruction.
 def get_instruction(category, source_lang, target_lang):
   if category == Category.SUMMARIZE.value:
-    return "Summarize the following text, maintaining the original language of the text in the summary."  # pylint: disable=line-too-long
+    # pylint: disable=line-too-long
+    return """Summarize the following text, maintaining the language of the text.
+If the text cannot be summarized, return the original text.
+The response MUST be in plain text and follow the JSON format.
+{"result": }"""
+
   if category == Category.TRANSLATE.value:
-    return f"Translate the following text from {source_lang} to {target_lang}."
+    # pylint: disable=line-too-long
+    return f"""Translate the following text from {source_lang} to {target_lang}.
+The response MUST be in plain text and follow the JSON format.
+{{"result": }}"""
 
 
 def get_responses(user_prompt, category, source_lang, target_lang):
@@ -70,7 +78,6 @@ def get_responses(user_prompt, category, source_lang, target_lang):
     raise gr.Error("Please select source and target languages.")
 
   models = sample(list(supported_models), 2)
-  instruction = get_instruction(category, source_lang, target_lang)
 
   responses = []
   for model in models:
@@ -80,6 +87,10 @@ def get_responses(user_prompt, category, source_lang, target_lang):
         "provider"] + "/" + model if "provider" in model_config else model
     api_key = model_config.get("apiKey", None)
     api_base = model_config.get("apiBase", None)
+
+    default_instruction = get_instruction(category, source_lang, target_lang)
+    instruction = model_config.get(f"{category.lower()}Instruction",
+                                   default_instruction)
 
     try:
       # TODO(#1): Allow user to set configuration.
@@ -93,7 +104,9 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                                 "content": user_prompt,
                                 "role": "user"
                             }])
-      content = response.choices[0].message.content
+
+      json_content = json.loads(response.choices[0].message.content)
+      content = json_content["result"]
       create_history(model, instruction, user_prompt, content)
       responses.append(content)
 
