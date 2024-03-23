@@ -60,13 +60,8 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
-def scroll_to_bottom_js(elem_id):
-  return f"""
-  () => {{
-    const element = document.querySelector("#{elem_id} textarea");
-    element.scrollTop = element.scrollHeight;
-  }}
-  """
+def activate_button():
+  return gr.Button(interactive=True)
 
 
 # Removes the persistent orange border from the leaderboard, which
@@ -115,21 +110,9 @@ with gr.Blocks(title="Arena", css=css) as app:
 
   with gr.Group():
     with gr.Row():
-      response_a_elem_id = "responseA"
-      response_a_textbox = gr.Textbox(label="Model A",
-                                      interactive=False,
-                                      elem_id=response_a_elem_id)
-      response_a_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_a_elem_id))
-      response_boxes[0] = response_a_textbox
+      response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
 
-      response_b_elem_id = "responseB"
-      response_b_textbox = gr.Textbox(label="Model B",
-                                      interactive=False,
-                                      elem_id=response_b_elem_id)
-      response_b_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_b_elem_id))
-      response_boxes[1] = response_b_textbox
+      response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
 
     with gr.Row(visible=False) as model_name_row:
       model_names[0] = gr.Textbox(show_label=False)
@@ -149,8 +132,8 @@ with gr.Blocks(title="Arena", css=css) as app:
       outputs=response_boxes + model_names + [instruction_state]).success(
           fn=lambda: [gr.Row(visible=True)
                      ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[vote_row] + vote_buttons).then(
-              fn=lambda: [gr.Button(interactive=True)], outputs=[submit])
+          outputs=[vote_row] + vote_buttons).then(fn=activate_button,
+                                                  outputs=submit)
 
   submit.click(fn=lambda: [
       gr.Button(interactive=False),
