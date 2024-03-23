@@ -83,18 +83,21 @@ css = """
 with gr.Blocks(title="Arena", css=css) as app:
   with gr.Row():
     category_radio = gr.Radio(
-        [category.value for category in response.Category],
+        choices=[category.value for category in response.Category],
+        value=response.Category.SUMMARIZE.value,
         label="Category",
         info="The chosen category determines the instruction sent to the LLMs.")
 
     source_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="English",
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="Spanish",
         label="Target language",
         info="Choose the target language for translation.",
         interactive=True,
