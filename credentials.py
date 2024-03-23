@@ -5,6 +5,7 @@ required for authentication with GCP services.
 
 import json
 import os
+import stat
 import tempfile
 
 # Path to local credentials file, used in local development.
@@ -14,22 +15,23 @@ CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH")
 CREDENTIALS = os.environ.get("CREDENTIALS")
 
 
-def set_credentials():
-  if not CREDENTIALS and not CREDENTIALS_PATH:
+def set_credentials(credentials: str = None, credentials_path: str = None):
+  if not credentials and not credentials_path:
     raise ValueError(
-        "No credentials found. Ensure CREDENTIALS or CREDENTIALS_PATH is set.")
+        "No credentials found. Ensure credentials or credentials path is set.")
 
-  if CREDENTIALS_PATH:
-    if os.path.exists(CREDENTIALS_PATH):
-      os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = CREDENTIALS_PATH
+  if credentials_path:
+    if os.path.exists(credentials_path):
+      os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
       return
-    raise FileNotFoundError(f"Credentials file not found: {CREDENTIALS_PATH}")
+    raise FileNotFoundError(f"Credentials file not found: {credentials_path}")
 
   # Create a temporary file to store credentials for
   # services that don't accept string format credentials.
   with tempfile.NamedTemporaryFile(mode="w", suffix=".json",
                                    delete=False) as cred_file:
-    cred_file.write(CREDENTIALS)
+    cred_file.write(credentials)
+    os.chmod(cred_file.name, stat.S_IRUSR)
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_file.name
 
 

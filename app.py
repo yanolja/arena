@@ -7,6 +7,7 @@ from uuid import uuid4
 from firebase_admin import firestore
 import gradio as gr
 
+import credentials
 from credentials import set_credentials
 from leaderboard import build_leaderboard
 from leaderboard import db
@@ -172,7 +173,7 @@ with gr.Blocks(title="Arena", css=css) as app:
   build_leaderboard()
 
 if __name__ == "__main__":
-  set_credentials()
+  set_credentials(credentials.CREDENTIALS, credentials.CREDENTIALS_PATH)
 
   # We need to enable queue to use generators.
   app.queue()
