@@ -12,6 +12,8 @@ import litellm
 
 from credentials import get_credentials_json
 
+litellm.set_verbose = True
+
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 MODELS_SECRET = os.environ.get("MODELS_SECRET")
 
