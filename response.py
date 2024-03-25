@@ -59,7 +59,7 @@ def get_responses(user_prompt, category, source_lang, target_lang):
   for model in models:
     try:
       # TODO(#1): Allow user to set configuration.
-      response = completion(model=model,
+      response = completion(model_name=model,
                             messages=[{
                                 "content": instruction,
                                 "role": "system"

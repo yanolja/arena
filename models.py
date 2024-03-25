@@ -23,32 +23,58 @@ models_secret = secretmanager_client.access_secret_version(
                                                   MODELS_SECRET, "latest"))
 decoded_secret = models_secret.payload.data.decode("UTF-8")
 
-supported_models = json.loads(decoded_secret)
+supported_models_json = json.loads(decoded_secret)
 
 
-def completion(model: str, messages: List, max_tokens: float = None) -> str:
-  model_config = supported_models[model]
-  model_name = model_config[
-      "provider"] + "/" + model if "provider" in model_config else model
-  api_key = model_config.get("apiKey", None)
-  api_base = model_config.get("apiBase", None)
+class Model:
 
-  response = litellm.completion(model=model_name,
-                                api_key=api_key,
-                                api_base=api_base,
+  def __init__(
+      self,
+      name: str,
+      provider: str = None,
+      # The JSON keys are in camelCase. To unpack these keys into
+      # Model attributes, we need to use the same camelCase names.
+      apiKey: str = None,  # pylint: disable=invalid-name
+      apiBase: str = None):  # pylint: disable=invalid-name
+    self.name = name
+    self.provider = provider
+    self.api_key = apiKey
+    self.api_base = apiBase
+
+
+supported_models: List[Model] = [
+    Model(name=model_name, **model_config)
+    for model_name, model_config in supported_models_json.items()
+]
+
+
+def completion(model_name: str,
+               messages: List,
+               max_tokens: float = None) -> str:
+  model = next(
+      (model for model in supported_models if model.name == model_name), None)
+
+  response = litellm.completion(model=model.provider + "/" +
+                                model_name if model.provider else model_name,
+                                api_key=model.api_key,
+                                api_base=model.api_base,
                                 messages=messages,
                                 max_tokens=max_tokens)
+
   return response.choices[0].message.content
 
 
-def check_all_models() -> bool:
-  for model in supported_models:
+def check_models(models: List[Model]):
+  for model in models:
     try:
-      completion(model=model,
+      completion(model_name=model.name,
                  messages=[{
                      "content": "Hello.",
                      "role": "user"
                  }],
                  max_tokens=5)
+
+    # This check is designed to verify the availability of the models
+    # without any issues. Therefore, we need to catch all exceptions.
     except Exception as e:  # pylint: disable=broad-except
-      raise RuntimeError(f"Model {model} is not available: {e}") from e
+      raise RuntimeError(f"Model {model.name} is not available: {e}") from e

@@ -10,7 +10,8 @@ import gradio as gr
 from leaderboard import build_leaderboard
 from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
-from models import check_all_models
+from models import check_models
+from models import supported_models
 import response
 from response import get_responses
 
@@ -172,7 +173,7 @@ with gr.Blocks(title="Arena", css=css) as app:
   build_leaderboard()
 
 if __name__ == "__main__":
-  check_all_models()
+  check_models(supported_models)
 
   # We need to enable queue to use generators.
   app.queue()
