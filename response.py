@@ -69,7 +69,7 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                                 "content": user_prompt,
                                 "role": "user"
                             }])
-      create_history(model, instruction, user_prompt, response)
+      create_history(model.name, instruction, user_prompt, response)
       responses.append(response)
 
     # TODO(#1): Narrow down the exception type.
@@ -77,9 +77,12 @@ def get_responses(user_prompt, category, source_lang, target_lang):
       print(f"Error with model {model.name}: {e}")
       raise gr.Error("Failed to get response. Please try again.")
 
+  model_names = [model.name for model in models]
+
   # It simulates concurrent stream response generation.
   max_response_length = max(len(response) for response in responses)
   for i in range(max_response_length):
-    yield [response[:i + 1] for response in responses] + models + [instruction]
+    yield [response[:i + 1] for response in responses
+          ] + model_names + [instruction]
 
-  yield responses + models + [instruction]
+  yield responses + model_names + [instruction]
