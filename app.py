@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from firebase_admin import firestore
 import gradio as gr
+import lingua
 
 from leaderboard import build_leaderboard
 from leaderboard import db
@@ -14,6 +15,8 @@ from models import check_models
 from models import supported_models
 import response
 from response import get_responses
+
+detector = lingua.LanguageDetectorBuilder.from_all_languages().build()
 
 
 class VoteOptions(enum.Enum):
@@ -43,7 +46,12 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   }
 
   if category == response.Category.SUMMARIZE.value:
+    language_a = detector.detect_language_of(response_a)
+    language_b = detector.detect_language_of(response_b)
+
     doc_ref = db.collection("arena-summarizations").document(doc_id)
+    doc["model_a_response_language"] = language_a.name.lower()
+    doc["model_b_response_language"] = language_b.name.lower()
     doc_ref.set(doc)
 
     return outputs
@@ -62,13 +70,8 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
-def scroll_to_bottom_js(elem_id):
-  return f"""
-  () => {{
-    const element = document.querySelector("#{elem_id} textarea");
-    element.scrollTop = element.scrollHeight;
-  }}
-  """
+def activate_button():
+  return gr.Button(interactive=True)
 
 
 # Removes the persistent orange border from the leaderboard, which
@@ -82,18 +85,21 @@ css = """
 with gr.Blocks(title="Arena", css=css) as app:
   with gr.Row():
     category_radio = gr.Radio(
-        [category.value for category in response.Category],
+        choices=[category.value for category in response.Category],
+        value=response.Category.SUMMARIZE.value,
         label="Category",
         info="The chosen category determines the instruction sent to the LLMs.")
 
     source_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="English",
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="Spanish",
         label="Target language",
         info="Choose the target language for translation.",
         interactive=True,
@@ -117,21 +123,9 @@ with gr.Blocks(title="Arena", css=css) as app:
 
   with gr.Group():
     with gr.Row():
-      response_a_elem_id = "responseA"
-      response_a_textbox = gr.Textbox(label="Model A",
-                                      interactive=False,
-                                      elem_id=response_a_elem_id)
-      response_a_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_a_elem_id))
-      response_boxes[0] = response_a_textbox
+      response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
 
-      response_b_elem_id = "responseB"
-      response_b_textbox = gr.Textbox(label="Model B",
-                                      interactive=False,
-                                      elem_id=response_b_elem_id)
-      response_b_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_b_elem_id))
-      response_boxes[1] = response_b_textbox
+      response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
 
     with gr.Row(visible=False) as model_name_row:
       model_names[0] = gr.Textbox(show_label=False)
@@ -151,8 +145,8 @@ with gr.Blocks(title="Arena", css=css) as app:
       outputs=response_boxes + model_names + [instruction_state]).success(
           fn=lambda: [gr.Row(visible=True)
                      ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[vote_row] + vote_buttons).then(
-              fn=lambda: [gr.Button(interactive=True)], outputs=[submit])
+          outputs=[vote_row] + vote_buttons).then(fn=activate_button,
+                                                  outputs=submit)
 
   submit.click(fn=lambda: [
       gr.Button(interactive=False),
