@@ -68,10 +68,6 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
-def activate_button():
-  return gr.Button(interactive=True)
-
-
 # Removes the persistent orange border from the leaderboard, which
 # appears due to the 'generating' class when using the 'every' parameter.
 css = """
@@ -150,7 +146,7 @@ with gr.Blocks(title="Arena", css=css) as app:
   submit_event.success(fn=lambda: [gr.Row(visible=True)] +
                        [gr.Button(interactive=True) for _ in range(3)],
                        outputs=[vote_row] + vote_buttons)
-  submit_event.then(fn=activate_button, outputs=submit)
+  submit_event.then(fn=lambda: gr.Button(interactive=True), outputs=submit)
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
