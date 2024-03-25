@@ -4,6 +4,7 @@ This module contains functions for generating responses using LLMs.
 
 import enum
 from random import sample
+from typing import List
 from uuid import uuid4
 
 from firebase_admin import firestore
@@ -11,6 +12,7 @@ import gradio as gr
 
 from leaderboard import db
 from model import completion
+from model import Model
 from model import supported_models
 
 
@@ -52,14 +54,14 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                                                not target_lang):
     raise gr.Error("Please select source and target languages.")
 
-  models = sample(list(supported_models), 2)
+  models: List[Model] = sample(list(supported_models), 2)
   instruction = get_instruction(category, source_lang, target_lang)
 
   responses = []
   for model in models:
     try:
       # TODO(#1): Allow user to set configuration.
-      response = completion(model_name=model,
+      response = completion(model=model,
                             messages=[{
                                 "content": instruction,
                                 "role": "system"
@@ -67,13 +69,12 @@ def get_responses(user_prompt, category, source_lang, target_lang):
                                 "content": user_prompt,
                                 "role": "user"
                             }])
-      content = response.choices[0].message.content
-      create_history(model, instruction, user_prompt, content)
-      responses.append(content)
+      create_history(model, instruction, user_prompt, response)
+      responses.append(response)
 
     # TODO(#1): Narrow down the exception type.
     except Exception as e:  # pylint: disable=broad-except
-      print(f"Error with model {model}: {e}")
+      print(f"Error with model {model.name}: {e}")
       raise gr.Error("Failed to get response. Please try again.")
 
   # It simulates concurrent stream response generation.

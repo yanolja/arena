@@ -48,14 +48,9 @@ supported_models: List[Model] = [
 ]
 
 
-def completion(model_name: str,
-               messages: List,
-               max_tokens: float = None) -> str:
-  model = next(
-      (model for model in supported_models if model.name == model_name), None)
-
+def completion(model: Model, messages: List, max_tokens: float = None) -> str:
   response = litellm.completion(model=model.provider + "/" +
-                                model_name if model.provider else model_name,
+                                model.name if model.provider else model.name,
                                 api_key=model.api_key,
                                 api_base=model.api_base,
                                 messages=messages,
@@ -68,7 +63,7 @@ def check_models(models: List[Model]):
   for model in models:
     print(f"Checking model {model.name}...")
     try:
-      completion(model_name=model.name,
+      completion(model=model,
                  messages=[{
                      "content": "Hello.",
                      "role": "user"
