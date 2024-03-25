@@ -137,21 +137,20 @@ with gr.Blocks(title="Arena", css=css) as app:
   vote_buttons = [option_a, option_b, tie]
   instruction_state = gr.State("")
 
-  submit.click(
-      fn=get_responses,
-      inputs=[prompt, category_radio, source_language, target_language],
-      outputs=response_boxes + model_names + [instruction_state]).success(
-          fn=lambda: [gr.Row(visible=True)
-                     ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[vote_row] + vote_buttons).then(fn=activate_button,
-                                                  outputs=submit)
-
-  submit.click(fn=lambda: [
-      gr.Button(interactive=False),
-      gr.Row(visible=False),
-      gr.Row(visible=False)
-  ],
-               outputs=[submit, vote_row, model_name_row])
+  submit_event = submit.click(
+      fn=lambda: [
+          gr.Button(interactive=False),
+          gr.Row(visible=False),
+          gr.Row(visible=False)
+      ],
+      outputs=[submit, vote_row, model_name_row]).then(
+          fn=get_responses,
+          inputs=[prompt, category_radio, source_language, target_language],
+          outputs=response_boxes + model_names + [instruction_state])
+  submit_event.success(fn=lambda: [gr.Row(visible=True)] +
+                       [gr.Button(interactive=True) for _ in range(3)],
+                       outputs=[vote_row] + vote_buttons)
+  submit_event.then(fn=activate_button, outputs=submit)
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
