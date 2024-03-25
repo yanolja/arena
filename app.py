@@ -11,8 +11,8 @@ import lingua
 from leaderboard import build_leaderboard
 from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
-from models import check_models
-from models import supported_models
+from model import check_models
+from model import supported_models
 import response
 from response import get_responses
 

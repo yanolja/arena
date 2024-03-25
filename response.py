@@ -10,8 +10,8 @@ from firebase_admin import firestore
 import gradio as gr
 
 from leaderboard import db
-from models import completion
-from models import supported_models
+from model import completion
+from model import supported_models
 
 
 def create_history(model_name: str, instruction: str, prompt: str,

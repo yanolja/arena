@@ -66,6 +66,7 @@ def completion(model_name: str,
 
 def check_models(models: List[Model]):
   for model in models:
+    print(f"Checking model {model.name}...")
     try:
       completion(model_name=model.name,
                  messages=[{
@@ -73,6 +74,7 @@ def check_models(models: List[Model]):
                      "role": "user"
                  }],
                  max_tokens=5)
+      print(f"Model {model.name} is available.")
 
     # This check is designed to verify the availability of the models
     # without any issues. Therefore, we need to catch all exceptions.
