@@ -16,9 +16,9 @@ import pandas as pd
 
 from credentials import get_credentials_json
 
-# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
-firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
-db = firestore.client()
+if gr.NO_RELOAD:
+  firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
+  db = firestore.client()
 
 SUPPORTED_TRANSLATION_LANGUAGES = [
     language.name.capitalize() for language in lingua.Language.all()
