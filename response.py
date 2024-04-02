@@ -63,11 +63,11 @@ def get_responses(user_prompt, category, source_lang, target_lang):
       # TODO(#1): Allow user to set configuration.
       response = completion(model=model,
                             messages=[{
-                                "content": instruction,
-                                "role": "system"
+                                "role": "system",
+                                "content": instruction
                             }, {
-                                "content": user_prompt,
-                                "role": "user"
+                                "role": "user",
+                                "content": user_prompt
                             }])
       create_history(model.name, instruction, user_prompt, response)
       responses.append(response)
