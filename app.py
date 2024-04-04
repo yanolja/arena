@@ -6,12 +6,17 @@ from uuid import uuid4
 
 from firebase_admin import firestore
 import gradio as gr
+import lingua
 
+import credentials
+from credentials import set_credentials
 from leaderboard import build_leaderboard
 from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
 import response
 from response import get_responses
+
+detector = lingua.LanguageDetectorBuilder.from_all_languages().build()
 
 
 class VoteOptions(enum.Enum):
@@ -41,7 +46,12 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   }
 
   if category == response.Category.SUMMARIZE.value:
+    language_a = detector.detect_language_of(response_a)
+    language_b = detector.detect_language_of(response_b)
+
     doc_ref = db.collection("arena-summarizations").document(doc_id)
+    doc["model_a_response_language"] = language_a.name.lower()
+    doc["model_b_response_language"] = language_b.name.lower()
     doc_ref.set(doc)
 
     return outputs
@@ -60,15 +70,6 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
   raise gr.Error("Please select a response type.")
 
 
-def scroll_to_bottom_js(elem_id):
-  return f"""
-  () => {{
-    const element = document.querySelector("#{elem_id} textarea");
-    element.scrollTop = element.scrollHeight;
-  }}
-  """
-
-
 # Removes the persistent orange border from the leaderboard, which
 # appears due to the 'generating' class when using the 'every' parameter.
 css = """
@@ -80,18 +81,21 @@ css = """
 with gr.Blocks(title="Arena", css=css) as app:
   with gr.Row():
     category_radio = gr.Radio(
-        [category.value for category in response.Category],
+        choices=[category.value for category in response.Category],
+        value=response.Category.SUMMARIZE.value,
         label="Category",
         info="The chosen category determines the instruction sent to the LLMs.")
 
     source_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="English",
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
         choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        value="Spanish",
         label="Target language",
         info="Choose the target language for translation.",
         interactive=True,
@@ -115,21 +119,9 @@ with gr.Blocks(title="Arena", css=css) as app:
 
   with gr.Group():
     with gr.Row():
-      response_a_elem_id = "responseA"
-      response_a_textbox = gr.Textbox(label="Model A",
-                                      interactive=False,
-                                      elem_id=response_a_elem_id)
-      response_a_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_a_elem_id))
-      response_boxes[0] = response_a_textbox
+      response_boxes[0] = gr.Textbox(label="Model A", interactive=False)
 
-      response_b_elem_id = "responseB"
-      response_b_textbox = gr.Textbox(label="Model B",
-                                      interactive=False,
-                                      elem_id=response_b_elem_id)
-      response_b_textbox.change(fn=None,
-                                js=scroll_to_bottom_js(response_b_elem_id))
-      response_boxes[1] = response_b_textbox
+      response_boxes[1] = gr.Textbox(label="Model B", interactive=False)
 
     with gr.Row(visible=False) as model_name_row:
       model_names[0] = gr.Textbox(show_label=False)
@@ -140,30 +132,55 @@ with gr.Blocks(title="Arena", css=css) as app:
     option_b = gr.Button(VoteOptions.MODEL_B.value)
     tie = gr.Button(VoteOptions.TIE.value)
 
-  vote_buttons = [option_a, option_b, tie]
   instruction_state = gr.State("")
 
-  submit.click(
-      fn=get_responses,
-      inputs=[prompt, category_radio, source_language, target_language],
-      outputs=response_boxes + model_names + [instruction_state]).success(
-          fn=lambda: [gr.Row(visible=True)
-                     ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[vote_row] + vote_buttons).then(
-              fn=lambda: [gr.Button(interactive=True)], outputs=[submit])
+  # The following elements need to be reset when the user changes
+  # the category, source language, or target language.
+  ui_elements = [
+      response_boxes[0], response_boxes[1], model_names[0], model_names[1],
+      instruction_state, model_name_row, vote_row
+  ]
 
-  submit.click(fn=lambda: [
-      gr.Button(interactive=False),
-      gr.Row(visible=False),
-      gr.Row(visible=False)
-  ],
-               outputs=[submit, vote_row, model_name_row])
+  def reset_ui():
+    return [gr.Textbox(value="") for _ in range(4)
+           ] + [gr.State(""),
+                gr.Row(visible=False),
+                gr.Row(visible=False)]
+
+  category_radio.change(fn=reset_ui, outputs=ui_elements)
+  source_language.change(fn=reset_ui, outputs=ui_elements)
+  target_language.change(fn=reset_ui, outputs=ui_elements)
+
+  submit_event = submit.click(
+      fn=lambda: [
+          gr.Radio(interactive=False),
+          gr.Dropdown(interactive=False),
+          gr.Dropdown(interactive=False),
+          gr.Button(interactive=False),
+          gr.Row(visible=False),
+          gr.Row(visible=False)
+      ],
+      outputs=[
+          category_radio, source_language, target_language, submit, vote_row,
+          model_name_row
+      ]).then(fn=get_responses,
+              inputs=[prompt, category_radio, source_language, target_language],
+              outputs=response_boxes + model_names + [instruction_state])
+  submit_event.success(fn=lambda: gr.Row(visible=True), outputs=vote_row)
+  submit_event.then(
+      fn=lambda: [
+          gr.Radio(interactive=True),
+          gr.Dropdown(interactive=True),
+          gr.Dropdown(interactive=True),
+          gr.Button(interactive=True)
+      ],
+      outputs=[category_radio, source_language, target_language, submit])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
       target_language
   ]
-  common_outputs = vote_buttons + [model_name_row]
+  common_outputs = [option_a, option_b, tie, model_name_row]
   option_a.click(vote, [option_a] + common_inputs, common_outputs)
   option_b.click(vote, [option_b] + common_inputs, common_outputs)
   tie.click(vote, [tie] + common_inputs, common_outputs)
@@ -171,6 +188,8 @@ with gr.Blocks(title="Arena", css=css) as app:
   build_leaderboard()
 
 if __name__ == "__main__":
+  set_credentials(credentials.CREDENTIALS, credentials.CREDENTIALS_PATH)
+
   # We need to enable queue to use generators.
   app.queue()
   app.launch(debug=True)
