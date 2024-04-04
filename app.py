@@ -176,10 +176,10 @@ with gr.Blocks(title="Arena", css=css) as app:
       ],
       outputs=[category_radio, source_language, target_language, submit])
 
-  def vote_and_then(option: gr.Button):
-    option.click(
+  def deactivate_after_voting(option_button: gr.Button):
+    option_button.click(
         fn=vote,
-        inputs=[option] + response_boxes + model_names + [
+        inputs=[option_button] + response_boxes + model_names + [
             prompt, instruction_state, category_radio, source_language,
             target_language
         ],
@@ -187,9 +187,8 @@ with gr.Blocks(title="Arena", css=css) as app:
             fn=lambda: [gr.Button(interactive=False) for _ in range(3)],
             outputs=[option_a, option_b, tie])
 
-  vote_and_then(option_a)
-  vote_and_then(option_b)
-  vote_and_then(tie)
+  for option in [option_a, option_b, tie]:
+    deactivate_after_voting(option)
 
   build_leaderboard()
 
