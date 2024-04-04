@@ -8,6 +8,8 @@ from firebase_admin import firestore
 import gradio as gr
 import lingua
 
+import credentials
+from credentials import set_credentials
 from leaderboard import build_leaderboard
 from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
@@ -68,10 +70,6 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
     return outputs
 
   raise gr.Error("Please select a response type.")
-
-
-def activate_button():
-  return gr.Button(interactive=True)
 
 
 # Removes the persistent orange border from the leaderboard, which
@@ -136,30 +134,55 @@ with gr.Blocks(title="Arena", css=css) as app:
     option_b = gr.Button(VoteOptions.MODEL_B.value)
     tie = gr.Button(VoteOptions.TIE.value)
 
-  vote_buttons = [option_a, option_b, tie]
   instruction_state = gr.State("")
 
-  submit.click(
-      fn=get_responses,
-      inputs=[prompt, category_radio, source_language, target_language],
-      outputs=response_boxes + model_names + [instruction_state]).success(
-          fn=lambda: [gr.Row(visible=True)
-                     ] + [gr.Button(interactive=True) for _ in range(3)],
-          outputs=[vote_row] + vote_buttons).then(fn=activate_button,
-                                                  outputs=submit)
+  # The following elements need to be reset when the user changes
+  # the category, source language, or target language.
+  ui_elements = [
+      response_boxes[0], response_boxes[1], model_names[0], model_names[1],
+      instruction_state, model_name_row, vote_row
+  ]
 
-  submit.click(fn=lambda: [
-      gr.Button(interactive=False),
-      gr.Row(visible=False),
-      gr.Row(visible=False)
-  ],
-               outputs=[submit, vote_row, model_name_row])
+  def reset_ui():
+    return [gr.Textbox(value="") for _ in range(4)
+           ] + [gr.State(""),
+                gr.Row(visible=False),
+                gr.Row(visible=False)]
+
+  category_radio.change(fn=reset_ui, outputs=ui_elements)
+  source_language.change(fn=reset_ui, outputs=ui_elements)
+  target_language.change(fn=reset_ui, outputs=ui_elements)
+
+  submit_event = submit.click(
+      fn=lambda: [
+          gr.Radio(interactive=False),
+          gr.Dropdown(interactive=False),
+          gr.Dropdown(interactive=False),
+          gr.Button(interactive=False),
+          gr.Row(visible=False),
+          gr.Row(visible=False)
+      ],
+      outputs=[
+          category_radio, source_language, target_language, submit, vote_row,
+          model_name_row
+      ]).then(fn=get_responses,
+              inputs=[prompt, category_radio, source_language, target_language],
+              outputs=response_boxes + model_names + [instruction_state])
+  submit_event.success(fn=lambda: gr.Row(visible=True), outputs=vote_row)
+  submit_event.then(
+      fn=lambda: [
+          gr.Radio(interactive=True),
+          gr.Dropdown(interactive=True),
+          gr.Dropdown(interactive=True),
+          gr.Button(interactive=True)
+      ],
+      outputs=[category_radio, source_language, target_language, submit])
 
   common_inputs = response_boxes + model_names + [
       prompt, instruction_state, category_radio, source_language,
       target_language
   ]
-  common_outputs = vote_buttons + [model_name_row]
+  common_outputs = [option_a, option_b, tie, model_name_row]
   option_a.click(vote, [option_a] + common_inputs, common_outputs)
   option_b.click(vote, [option_b] + common_inputs, common_outputs)
   tie.click(vote, [tie] + common_inputs, common_outputs)
@@ -167,6 +190,7 @@ with gr.Blocks(title="Arena", css=css) as app:
   build_leaderboard()
 
 if __name__ == "__main__":
+  set_credentials(credentials.CREDENTIALS, credentials.CREDENTIALS_PATH)
   check_models(supported_models)
 
   # We need to enable queue to use generators.

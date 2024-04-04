@@ -16,13 +16,15 @@ import pandas as pd
 
 from credentials import get_credentials_json
 
-# TODO(#21): Fix auto-reload issue related to the initialization of Firebase.
-firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
-db = firestore.client()
+if gr.NO_RELOAD:
+  firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
+  db = firestore.client()
 
 SUPPORTED_TRANSLATION_LANGUAGES = [
     language.name.capitalize() for language in lingua.Language.all()
 ]
+
+ANY_LANGUAGE = "Any"
 
 
 class LeaderboardTab(enum.Enum):
@@ -68,11 +70,11 @@ def get_docs(tab: str,
   if tab == LeaderboardTab.TRANSLATION:
     collection = db.collection("arena-translations").order_by("timestamp")
 
-    if source_lang:
+    if source_lang and (not source_lang == ANY_LANGUAGE):
       collection = collection.where(filter=base_query.FieldFilter(
           "source_language", "==", source_lang.lower()))
 
-    if target_lang:
+    if target_lang and (not target_lang == ANY_LANGUAGE):
       collection = collection.where(filter=base_query.FieldFilter(
           "target_language", "==", target_lang.lower()))
 
@@ -109,9 +111,9 @@ LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
 DEFAULT_FILTER_OPTIONS = {
-    "summary_language": "English",
-    "source_language": "English",
-    "target_language": "Spanish"
+    "summary_language": lingua.Language.ENGLISH.name.capitalize(),
+    "source_language": ANY_LANGUAGE,
+    "target_language": lingua.Language.ENGLISH.name.capitalize()
 }
 
 
@@ -124,7 +126,7 @@ def update_filtered_leaderboard(tab, summary_lang: str, source_lang: str,
 def build_leaderboard():
   with gr.Tabs():
     with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
-      with gr.Accordion("Filter", open=False):
+      with gr.Accordion("Filter", open=False) as summarization_filter:
         with gr.Row():
           languages = [
               language.name.capitalize() for language in lingua.Language.all()
@@ -161,15 +163,15 @@ def build_leaderboard():
       gr.Markdown(LEADERBOARD_INFO)
 
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
-      with gr.Accordion("Filter", open=False):
+      with gr.Accordion("Filter", open=False) as translation_filter:
         with gr.Row():
           source_language = gr.Dropdown(
-              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              choices=SUPPORTED_TRANSLATION_LANGUAGES + [ANY_LANGUAGE],
               label="Source language",
               value=DEFAULT_FILTER_OPTIONS["source_language"],
               interactive=True)
           target_language = gr.Dropdown(
-              choices=SUPPORTED_TRANSLATION_LANGUAGES,
+              choices=SUPPORTED_TRANSLATION_LANGUAGES + [ANY_LANGUAGE],
               label="Target language",
               value=DEFAULT_FILTER_OPTIONS["target_language"],
               interactive=True)
@@ -198,6 +200,15 @@ def build_leaderboard():
                                      target_language
                                  ],
                                  outputs=filtered_translation)
+
+      # When filter options are changed, the accordion keeps closed.
+      # To avoid this, we open the accordion when the filter options are changed.
+      summary_language.change(fn=lambda: gr.Accordion(open=True),
+                              outputs=summarization_filter)
+      source_language.change(fn=lambda: gr.Accordion(open=True),
+                             outputs=translation_filter)
+      target_language.change(fn=lambda: gr.Accordion(open=True),
+                             outputs=translation_filter)
 
       gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
                    datatype=["number", "str", "number"],
