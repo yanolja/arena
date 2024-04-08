@@ -13,6 +13,8 @@ from credentials import set_credentials
 from leaderboard import build_leaderboard
 from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
+from model import check_models
+from model import supported_models
 import response
 from response import get_responses
 
@@ -189,6 +191,7 @@ with gr.Blocks(title="Arena", css=css) as app:
 
 if __name__ == "__main__":
   set_credentials(credentials.CREDENTIALS, credentials.CREDENTIALS_PATH)
+  check_models(supported_models)
 
   # We need to enable queue to use generators.
   app.queue()
