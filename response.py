@@ -11,7 +11,6 @@ from firebase_admin import firestore
 import gradio as gr
 
 from leaderboard import db
-from model import completion
 from model import Model
 from model import supported_models
 
@@ -39,22 +38,18 @@ class Category(enum.Enum):
 
 
 # TODO(#31): Let the model builders set the instruction.
-def get_instruction(category, source_lang, target_lang):
+def get_instruction(category: str, model: Model, source_lang: str,
+                    target_lang: str):
   if category == Category.SUMMARIZE.value:
-    # pylint: disable=line-too-long
-    return """Summarize the following text, maintaining the language of the text.
-If the text cannot be summarized, return the original text.
-The response MUST be in plain text and follow the JSON format.
-{"result": }"""
+    return model.summarize_prompt
 
   if category == Category.TRANSLATE.value:
-    # pylint: disable=line-too-long
-    return f"""Translate the following text from {source_lang} to {target_lang}.
-The response MUST be in plain text and follow the JSON format.
-{{"result": }}"""
+    return model.translate_prompt.format(source_lang=source_lang,
+                                         target_lang=target_lang)
 
 
-def get_responses(user_prompt, category, source_lang, target_lang):
+def get_responses(user_prompt: str, category: str, source_lang: str,
+                  target_lang: str):
   if not category:
     raise gr.Error("Please select a category.")
 
@@ -63,20 +58,18 @@ def get_responses(user_prompt, category, source_lang, target_lang):
     raise gr.Error("Please select source and target languages.")
 
   models: List[Model] = sample(list(supported_models), 2)
-  instruction = get_instruction(category, source_lang, target_lang)
-
   responses = []
   for model in models:
+    instruction = get_instruction(category, model, source_lang, target_lang)
     try:
       # TODO(#1): Allow user to set configuration.
-      response = completion(model=model,
-                            messages=[{
-                                "role": "system",
-                                "content": instruction
-                            }, {
-                                "role": "user",
-                                "content": user_prompt
-                            }])
+      response = model.completion(messages=[{
+          "role": "system",
+          "content": instruction
+      }, {
+          "role": "user",
+          "content": user_prompt
+      }])
       create_history(model.name, instruction, user_prompt, response)
       responses.append(response)
 

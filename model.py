@@ -25,6 +25,9 @@ decoded_secret = models_secret.payload.data.decode("UTF-8")
 
 supported_models_json = json.loads(decoded_secret)
 
+DEFAULT_SUMMARIZE_PROMPT = "Summarize the following text, maintaining the language of the text."  # pylint: disable=line-too-long
+DEFAULT_TRANSLATE_PROMPT = "Translate the following text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
+
 
 class Model:
 
@@ -35,11 +38,25 @@ class Model:
       # The JSON keys are in camelCase. To unpack these keys into
       # Model attributes, we need to use the same camelCase names.
       apiKey: str = None,  # pylint: disable=invalid-name
-      apiBase: str = None):  # pylint: disable=invalid-name
+      apiBase: str = None,  # pylint: disable=invalid-name
+      summarizePrompt: str = None,  # pylint: disable=invalid-name
+      translatePrompt: str = None):  # pylint: disable=invalid-name
     self.name = name
     self.provider = provider
     self.api_key = apiKey
     self.api_base = apiBase
+    self.summarize_prompt = summarizePrompt or DEFAULT_SUMMARIZE_PROMPT
+    self.translate_prompt = translatePrompt or DEFAULT_TRANSLATE_PROMPT
+
+  def completion(self, messages: List, max_tokens: float = None) -> str:
+    response = litellm.completion(model=self.provider + "/" +
+                                  self.name if self.provider else self.name,
+                                  api_key=self.api_key,
+                                  api_base=self.api_base,
+                                  messages=messages,
+                                  max_tokens=max_tokens)
+
+    return response.choices[0].message.content
 
 
 supported_models: List[Model] = [
@@ -48,27 +65,15 @@ supported_models: List[Model] = [
 ]
 
 
-def completion(model: Model, messages: List, max_tokens: float = None) -> str:
-  response = litellm.completion(model=model.provider + "/" +
-                                model.name if model.provider else model.name,
-                                api_key=model.api_key,
-                                api_base=model.api_base,
-                                messages=messages,
-                                max_tokens=max_tokens)
-
-  return response.choices[0].message.content
-
-
 def check_models(models: List[Model]):
   for model in models:
     print(f"Checking model {model.name}...")
     try:
-      completion(model=model,
-                 messages=[{
-                     "content": "Hello.",
-                     "role": "user"
-                 }],
-                 max_tokens=5)
+      model.completion(messages=[{
+          "content": "Hello.",
+          "role": "user"
+      }],
+                       max_tokens=5)
       print(f"Model {model.name} is available.")
 
     # This check is designed to verify the availability of the models
