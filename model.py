@@ -70,8 +70,8 @@ def check_models(models: List[Model]):
     print(f"Checking model {model.name}...")
     try:
       model.completion(messages=[{
-          "content": "Hello.",
-          "role": "user"
+          "role": "user",
+          "content": "Hello."
       }],
                        max_tokens=5)
       print(f"Model {model.name} is available.")
