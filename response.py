@@ -41,14 +41,14 @@ class Category(enum.Enum):
 def get_instruction(category: str, model: Model, source_lang: str,
                     target_lang: str):
   if category == Category.SUMMARIZE.value:
-    return model.summarize_prompt
+    return model.summarize_instruction
 
   if category == Category.TRANSLATE.value:
-    return model.translate_prompt.format(source_lang=source_lang,
-                                         target_lang=target_lang)
+    return model.translate_instruction.format(source_lang=source_lang,
+                                              target_lang=target_lang)
 
 
-def get_responses(user_prompt: str, category: str, source_lang: str,
+def get_responses(prompt: str, category: str, source_lang: str,
                   target_lang: str):
   if not category:
     raise gr.Error("Please select a category.")
@@ -68,9 +68,9 @@ def get_responses(user_prompt: str, category: str, source_lang: str,
           "content": instruction
       }, {
           "role": "user",
-          "content": user_prompt
+          "content": prompt
       }])
-      create_history(model.name, instruction, user_prompt, response)
+      create_history(model.name, instruction, prompt, response)
       responses.append(response)
 
     # TODO(#1): Narrow down the exception type.

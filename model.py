@@ -25,8 +25,8 @@ decoded_secret = models_secret.payload.data.decode("UTF-8")
 
 supported_models_json = json.loads(decoded_secret)
 
-DEFAULT_SUMMARIZE_PROMPT = "Summarize the following text, maintaining the language of the text."  # pylint: disable=line-too-long
-DEFAULT_TRANSLATE_PROMPT = "Translate the following text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
+DEFAULT_SUMMARIZE_INSTRUCTION = "Summarize the following text, maintaining the language of the text."  # pylint: disable=line-too-long
+DEFAULT_TRANSLATE_INSTRUCTION = "Translate the following text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
 
 
 class Model:
@@ -39,14 +39,14 @@ class Model:
       # Model attributes, we need to use the same camelCase names.
       apiKey: str = None,  # pylint: disable=invalid-name
       apiBase: str = None,  # pylint: disable=invalid-name
-      summarizePrompt: str = None,  # pylint: disable=invalid-name
-      translatePrompt: str = None):  # pylint: disable=invalid-name
+      summarizeInstruction: str = None,  # pylint: disable=invalid-name
+      translateInstruction: str = None):  # pylint: disable=invalid-name
     self.name = name
     self.provider = provider
     self.api_key = apiKey
     self.api_base = apiBase
-    self.summarize_prompt = summarizePrompt or DEFAULT_SUMMARIZE_PROMPT
-    self.translate_prompt = translatePrompt or DEFAULT_TRANSLATE_PROMPT
+    self.summarize_instruction = summarizeInstruction or DEFAULT_SUMMARIZE_INSTRUCTION  # pylint: disable=line-too-long
+    self.translate_instruction = translateInstruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
 
   def completion(self, messages: List, max_tokens: float = None) -> str:
     response = litellm.completion(model=self.provider + "/" +
