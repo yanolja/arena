@@ -28,7 +28,7 @@ class VoteOptions(enum.Enum):
 
 
 def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
-         user_prompt, instruction, category, source_lang, target_lang):
+         prompt, instruction, category, source_lang, target_lang):
   doc_id = uuid4().hex
   winner = VoteOptions(vote_button).name.lower()
 
@@ -37,7 +37,7 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
 
   doc = {
       "id": doc_id,
-      "prompt": user_prompt,
+      "prompt": prompt,
       "instruction": instruction,
       "model_a": model_a_name,
       "model_b": model_b_name,
@@ -116,7 +116,7 @@ with gr.Blocks(title="Arena", css=css) as app:
   model_names = [gr.State(None), gr.State(None)]
   response_boxes = [gr.State(None), gr.State(None)]
 
-  prompt = gr.TextArea(label="Prompt", lines=4)
+  prompt_textarea = gr.TextArea(label="Prompt", lines=4)
   submit = gr.Button()
 
   with gr.Group():
@@ -166,7 +166,10 @@ with gr.Blocks(title="Arena", css=css) as app:
           category_radio, source_language, target_language, submit, vote_row,
           model_name_row
       ]).then(fn=get_responses,
-              inputs=[prompt, category_radio, source_language, target_language],
+              inputs=[
+                  prompt_textarea, category_radio, source_language,
+                  target_language
+              ],
               outputs=response_boxes + model_names + [instruction_state])
   submit_event.success(fn=lambda: gr.Row(visible=True), outputs=vote_row)
   submit_event.then(
@@ -179,7 +182,7 @@ with gr.Blocks(title="Arena", css=css) as app:
       outputs=[category_radio, source_language, target_language, submit])
 
   common_inputs = response_boxes + model_names + [
-      prompt, instruction_state, category_radio, source_language,
+      prompt_textarea, instruction_state, category_radio, source_language,
       target_language
   ]
   common_outputs = [option_a, option_b, tie, model_name_row]
