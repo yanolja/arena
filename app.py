@@ -160,11 +160,11 @@ with gr.Blocks(title="Arena", css=css) as app:
           gr.Dropdown(interactive=False),
           gr.Button(interactive=False),
           gr.Row(visible=False),
-          gr.Row(visible=False)
-      ],
+          gr.Row(visible=False),
+      ] + [gr.Button(interactive=True) for _ in range(3)],
       outputs=[
           category_radio, source_language, target_language, submit, vote_row,
-          model_name_row
+          model_name_row, option_a, option_b, tie
       ]).then(fn=get_responses,
               inputs=[
                   prompt_textarea, category_radio, source_language,
@@ -181,14 +181,19 @@ with gr.Blocks(title="Arena", css=css) as app:
       ],
       outputs=[category_radio, source_language, target_language, submit])
 
-  common_inputs = response_boxes + model_names + [
-      prompt_textarea, instruction_state, category_radio, source_language,
-      target_language
-  ]
-  common_outputs = [option_a, option_b, tie, model_name_row]
-  option_a.click(vote, [option_a] + common_inputs, common_outputs)
-  option_b.click(vote, [option_b] + common_inputs, common_outputs)
-  tie.click(vote, [tie] + common_inputs, common_outputs)
+  def deactivate_after_voting(option_button: gr.Button):
+    option_button.click(
+        fn=vote,
+        inputs=[option_button] + response_boxes + model_names + [
+            prompt_textarea, instruction_state, category_radio, source_language,
+            target_language
+        ],
+        outputs=[option_a, option_b, tie, model_name_row]).then(
+            fn=lambda: [gr.Button(interactive=False) for _ in range(3)],
+            outputs=[option_a, option_b, tie])
+
+  for option in [option_a, option_b, tie]:
+    deactivate_after_voting(option)
 
   build_leaderboard()
 
