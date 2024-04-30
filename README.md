@@ -57,4 +57,4 @@ pinned: false
 
 ## License
 
-This project is licensed under the terms of the Apache 2.0 license.
+This project is licensed under the terms of the Apache 2.0 license. See the [LICENSE](LICENSE) file for more details.
