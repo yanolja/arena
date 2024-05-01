@@ -54,3 +54,7 @@ pinned: false
 
 1. Set the `CREDENTIALS` environment variable in your deployment platform's settings to your credentials JSON string.
 2. The application will parse and use these credentials when deployed.
+
+## License
+
+This project is licensed under the terms of the Apache 2.0 license. See the [LICENSE](LICENSE) file for more details.
