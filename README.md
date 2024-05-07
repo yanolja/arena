@@ -58,3 +58,11 @@ pinned: false
 ## License
 
 This project is licensed under the terms of the Apache 2.0 license. See the [LICENSE](LICENSE) file for more details.
+
+## Contributing
+
+Before you submit any contributions, please make sure to review and agree to our [Contributor License Agreement](CLA.md).
+
+## Code of Conduct
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before engaging with our community.
