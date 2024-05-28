@@ -15,8 +15,16 @@ from model import Model
 from model import supported_models
 
 
-def create_history(model_name: str, instruction: str, prompt: str,
-                   response: str):
+def get_history_collection(category: str):
+  if category == Category.SUMMARIZE.value:
+    return db.collection("arena-summarization-history")
+
+  if category == Category.TRANSLATE.value:
+    return db.collection("arena-translation-history")
+
+
+def create_history(category: str, model_name: str, instruction: str,
+                   prompt: str, response: str):
   doc_id = uuid4().hex
 
   doc = {
@@ -28,7 +36,7 @@ def create_history(model_name: str, instruction: str, prompt: str,
       "timestamp": firestore.SERVER_TIMESTAMP
   }
 
-  doc_ref = db.collection("arena-history").document(doc_id)
+  doc_ref = get_history_collection(category).document(doc_id)
   doc_ref.set(doc)
 
 
@@ -70,7 +78,7 @@ def get_responses(prompt: str, category: str, source_lang: str,
           "role": "user",
           "content": prompt
       }])
-      create_history(model.name, instruction, prompt, response)
+      create_history(category, model.name, instruction, prompt, response)
       responses.append(response)
 
     # TODO(#1): Narrow down the exception type.
