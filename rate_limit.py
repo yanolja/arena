@@ -47,4 +47,5 @@ def signal_handler(sig, frame):
 
 
 if gr.NO_RELOAD:
+  # Catch signal to ensure scheduler shuts down when server stops.
   signal.signal(signal.SIGINT, signal_handler)
