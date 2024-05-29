@@ -2,7 +2,6 @@
 It provides a platform for comparing the responses of two LLMs. 
 """
 import enum
-import uuid
 from uuid import uuid4
 
 from firebase_admin import firestore
