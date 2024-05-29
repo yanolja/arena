@@ -38,7 +38,7 @@ class RateLimiter:
 
   def clean_up(self):
     for ip_address, last_request_time in dict(self.requests).items():
-      if (datetime.datetime.now() - last_request_time).days > 1:
+      if (datetime.datetime.now() - last_request_time).days >= 1:
         del self.requests[ip_address]
 
 
