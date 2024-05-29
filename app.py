@@ -2,6 +2,7 @@
 It provides a platform for comparing the responses of two LLMs. 
 """
 import enum
+import uuid
 from uuid import uuid4
 
 from firebase_admin import firestore
@@ -15,6 +16,7 @@ from leaderboard import db
 from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
 from model import check_models
 from model import supported_models
+from rate_limit import set_token
 import response
 from response import get_responses
 
@@ -81,6 +83,8 @@ css = """
 """
 
 with gr.Blocks(title="Arena", css=css) as app:
+  set_token(app)
+
   with gr.Row():
     category_radio = gr.Radio(
         choices=[category.value for category in response.Category],
