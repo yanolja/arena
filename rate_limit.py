@@ -3,6 +3,7 @@ This module contains functions for rate limiting requests.
 """
 
 import datetime
+from http import cookies
 import signal
 import sys
 
@@ -16,13 +17,9 @@ class RateLimiter:
     self.requests = {}
 
   def request_allowed(self, request: gr.Request) -> bool:
-    for cookie in request.headers["cookie"].split("; "):
-      name, value = cookie.split("=")
-      if name == "token":
-        token = value
-        break
-    else:
-      return False
+    cookie = cookies.SimpleCookie()
+    cookie.load(request.headers["cookie"])
+    token = cookie["token"].value if "token" in cookie else None
 
     if not token or token not in self.requests:
       return False
@@ -37,9 +34,9 @@ class RateLimiter:
     self.requests[token] = datetime.datetime.min
 
   def clean_up(self):
-    for ip_address, last_request_time in dict(self.requests).items():
+    for token, last_request_time in dict(self.requests).items():
       if (datetime.datetime.now() - last_request_time).days >= 1:
-        del self.requests[ip_address]
+        del self.requests[token]
 
 
 rate_limiter = RateLimiter()
