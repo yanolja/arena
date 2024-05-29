@@ -27,7 +27,7 @@ class RateLimiter:
     if not token or token not in self.requests:
       return False
 
-    if self.within_limit(self.requests[token]):
+    if (datetime.datetime.now() - self.requests[token]).seconds < 5:
       return False
 
     self.requests[token] = datetime.datetime.now()
@@ -38,11 +38,8 @@ class RateLimiter:
 
   def clean_up(self):
     for ip_address, last_request_time in dict(self.requests).items():
-      if not self.within_limit(last_request_time):
+      if (datetime.datetime.now() - last_request_time).days > 1:
         del self.requests[ip_address]
-
-  def within_limit(self, target_time: datetime.datetime) -> bool:
-    return (datetime.datetime.now() - target_time).seconds < 5
 
 
 rate_limiter = RateLimiter()
