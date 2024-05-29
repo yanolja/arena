@@ -13,6 +13,7 @@ import gradio as gr
 from leaderboard import db
 from model import Model
 from model import supported_models
+from rate_limit import rate_limiter
 
 
 def create_history(model_name: str, instruction: str, prompt: str,
@@ -49,7 +50,10 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 
 def get_responses(prompt: str, category: str, source_lang: str,
-                  target_lang: str):
+                  target_lang: str, request: gr.Request):
+  if not rate_limiter.request_allowed(request):
+    raise gr.Error("You are sending too many requests. Please try again later.")
+
   if not category:
     raise gr.Error("Please select a category.")
 

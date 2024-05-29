@@ -202,5 +202,5 @@ if __name__ == "__main__":
   check_models(supported_models)
 
   # We need to enable queue to use generators.
-  app.queue()
-  app.launch(debug=True)
+  app.queue(api_open=False)
+  app.launch(debug=True, show_api=False)
