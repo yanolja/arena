@@ -27,7 +27,7 @@ class RateLimiter:
     if not token or token not in self.requests:
       return False
 
-    if (datetime.datetime.now() - self.requests[token]).seconds < 5:
+    if (datetime.datetime.now() - self.requests[token]).seconds < 3:
       return False
 
     self.requests[token] = datetime.datetime.now()
