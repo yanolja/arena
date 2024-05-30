@@ -70,6 +70,9 @@ def check_models(models: List[Model]):
     print(f"Checking model {model.name}...")
     try:
       model.completion(messages=[{
+          "role": "system",
+          "content": "You are a kind person."
+      }, {
           "role": "user",
           "content": "Hello."
       }],
