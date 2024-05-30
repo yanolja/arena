@@ -23,6 +23,7 @@ firebase-admin==6.4.0
 fonttools==4.47.2
 frozenlist==1.4.1
 fsspec==2024.2.0
+google-ai-generativelanguage==0.6.4
 google-api-core==2.16.2
 google-api-python-client==2.116.0
 google-auth==2.27.0
@@ -35,6 +36,7 @@ google-cloud-resource-manager==1.12.3
 google-cloud-secret-manager==2.18.3
 google-cloud-storage==2.14.0
 google-crc32c==1.5.0
+google-generativeai==0.5.4
 google-resumable-media==2.7.0
 googleapis-common-protos==1.62.0
 gradio==4.23.0
