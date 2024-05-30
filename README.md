@@ -35,6 +35,7 @@ pinned: false
    OPENAI_API_KEY=<your key> \
    ANTHROPIC_API_KEY=<your key> \
    MISTRAL_API_KEY=<your key> \
+   GEMINI_API_KEY=<your key> \
    python3 app.py
    ```
 
