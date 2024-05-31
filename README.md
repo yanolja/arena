@@ -8,7 +8,9 @@ app_file: app.py
 pinned: false
 ---
 
-# Arena
+# [Arena](https://huggingface.co/spaces/yanolja/arena)
+
+Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/arena)
 
 ## How to run locally
 
