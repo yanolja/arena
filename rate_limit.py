@@ -3,32 +3,46 @@ This module contains functions for rate limiting requests.
 """
 
 import datetime
-from http import cookies
 import signal
 import sys
+from uuid import uuid4
 
 from apscheduler.schedulers import background
 import gradio as gr
 
 
+class InvalidTokenException(Exception):
+  pass
+
+
+class UserRateLimitException(Exception):
+  pass
+
+
+class SystemRateLimitException(Exception):
+  pass
+
+
 class RateLimiter:
 
-  def __init__(self):
+  def __init__(self, daily_limit=10000):
     self.requests = {}
+    self.request_count = 0
+    self.daily_limit = daily_limit
+    self.scheduler = background.BackgroundScheduler()
 
-  def request_allowed(self, request: gr.Request) -> bool:
-    cookie = cookies.SimpleCookie()
-    cookie.load(request.headers["cookie"])
-    token = cookie["token"].value if "token" in cookie else None
-
+  def request_allowed(self, token: str):
     if not token or token not in self.requests:
-      return False
+      raise InvalidTokenException()
 
-    if (datetime.datetime.now() - self.requests[token]).seconds < 3:
-      return False
+    if (datetime.datetime.now() - self.requests[token]).seconds < 5:
+      raise UserRateLimitException()
+
+    if self.request_count >= self.daily_limit:
+      raise SystemRateLimitException()
 
     self.requests[token] = datetime.datetime.now()
-    return True
+    self.request_count += 1
 
   def initialize_request(self, token: str):
     self.requests[token] = datetime.datetime.min
@@ -38,37 +52,37 @@ class RateLimiter:
       if (datetime.datetime.now() - last_request_time).days >= 1:
         del self.requests[token]
 
+  def reset_request_count(self):
+    self.request_count = 0
+
 
 rate_limiter = RateLimiter()
 
 
 def set_token(app: gr.Blocks):
 
-  def set_token_server(new_token: str):
+  def set_token_server():
+    new_token = uuid4().hex
     rate_limiter.initialize_request(new_token)
     return new_token
 
-  # It's designated for the 'js' parameter in the app.load method.
-  # In Gradio, the 'js' method runs before the 'fn' method,
-  # therefore it is used to set the token on the client side first.
   set_token_client = """
-  function(_) {
-    const newToken = crypto.randomUUID();
+  function(newToken) {
     const expiresDateString = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
     document.cookie = `token=${newToken}; expires=${expiresDateString};`;
-    return newToken;
   }
   """
 
   token = gr.Textbox(visible=False)
-  app.load(fn=set_token_server,
-           js=set_token_client,
-           inputs=[token],
-           outputs=[token])
+  app.load(fn=set_token_server, outputs=[token])
+  token.change(fn=lambda _: None, js=set_token_client, inputs=[token])
 
 
 scheduler = background.BackgroundScheduler()
 scheduler.add_job(rate_limiter.clean_up, "interval", seconds=60 * 60 * 24)
+scheduler.add_job(rate_limiter.reset_request_count,
+                  "interval",
+                  seconds=60 * 60 * 24)
 scheduler.start()
 
 

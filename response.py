@@ -3,6 +3,7 @@ This module contains functions for generating responses using LLMs.
 """
 
 import enum
+from http import cookies
 from random import sample
 from typing import List
 from uuid import uuid4
@@ -13,6 +14,7 @@ import gradio as gr
 from leaderboard import db
 from model import Model
 from model import supported_models
+import rate_limit
 from rate_limit import rate_limiter
 
 
@@ -51,8 +53,23 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 def get_responses(prompt: str, category: str, source_lang: str,
                   target_lang: str, request: gr.Request):
-  if not rate_limiter.request_allowed(request):
-    raise gr.Error("You are sending too many requests. Please try again later.")
+  cookie = cookies.SimpleCookie()
+  cookie.load(request.headers["cookie"])
+  token = cookie["token"].value if "token" in cookie else None
+
+  try:
+    rate_limiter.request_allowed(token)
+  except rate_limit.InvalidTokenException as e:
+    raise gr.Error(
+        "Your session has expired. Please refresh the page to continue.") from e
+  except rate_limit.UserRateLimitException as e:
+    raise gr.Error(
+        "You've made too many requests in a short period. Please try again later."  # pylint: disable=line-too-long
+    ) from e
+  except rate_limit.SystemRateLimitException as e:
+    raise gr.Error(
+        "Our service is currently experiencing high traffic. Please try again later."  # pylint: disable=line-too-long
+    ) from e
 
   if not category:
     raise gr.Error("Please select a category.")
