@@ -123,9 +123,8 @@ def build_leaderboard():
 
     # Returns (original leaderboard, filtered leaderboard).
     def toggle_leaderboard(value: str) -> Tuple[gr.Dataframe, gr.Dataframe]:
-      if value == ANY_LANGUAGE:
-        return gr.Dataframe(visible=True), gr.Dataframe(visible=False)
-      return gr.Dataframe(visible=False), gr.Dataframe(visible=True)
+      return gr.Dataframe(visible=value == ANY_LANGUAGE), gr.Dataframe(
+          visible=value != ANY_LANGUAGE)
 
     with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
       summary_language = gr.Dropdown(choices=SUPPORTED_LANGUAGES +
