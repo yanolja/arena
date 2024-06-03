@@ -5,6 +5,7 @@ It provides a leaderboard component.
 from collections import defaultdict
 import enum
 import math
+from typing import Tuple
 
 import firebase_admin
 from firebase_admin import credentials
@@ -20,7 +21,7 @@ if gr.NO_RELOAD:
   firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
   db = firestore.client()
 
-SUPPORTED_TRANSLATION_LANGUAGES = [
+SUPPORTED_LANGUAGES = [
     language.name.capitalize() for language in lingua.Language.all()
 ]
 
@@ -59,7 +60,7 @@ def get_docs(tab: str,
   if tab == LeaderboardTab.SUMMARIZATION:
     collection = db.collection("arena-summarizations").order_by("timestamp")
 
-    if summary_lang:
+    if summary_lang and (not summary_lang == ANY_LANGUAGE):
       collection = collection.where(filter=base_query.FieldFilter(
           "model_a_response_language", "==", summary_lang.lower())).where(
               filter=base_query.FieldFilter("model_b_response_language", "==",
@@ -110,12 +111,6 @@ def load_elo_ratings(tab,
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
-DEFAULT_FILTER_OPTIONS = {
-    "summary_language": lingua.Language.ENGLISH.name.capitalize(),
-    "source_language": ANY_LANGUAGE,
-    "target_language": lingua.Language.ENGLISH.name.capitalize()
-}
-
 
 def update_filtered_leaderboard(tab, summary_lang: str, source_lang: str,
                                 target_lang: str):
@@ -125,94 +120,94 @@ def update_filtered_leaderboard(tab, summary_lang: str, source_lang: str,
 
 def build_leaderboard():
   with gr.Tabs():
+
+    # Returns (original leaderboard, filtered leaderboard).
+    def toggle_leaderboard(value: str) -> Tuple[gr.Dataframe, gr.Dataframe]:
+      if value == ANY_LANGUAGE:
+        return gr.Dataframe(visible=True), gr.Dataframe(visible=False)
+      return gr.Dataframe(visible=False), gr.Dataframe(visible=True)
+
     with gr.Tab(LeaderboardTab.SUMMARIZATION.value):
-      with gr.Accordion("Filter", open=False) as summarization_filter:
-        with gr.Row():
-          languages = [
-              language.name.capitalize() for language in lingua.Language.all()
-          ]
-          summary_language = gr.Dropdown(
-              choices=languages,
-              value=DEFAULT_FILTER_OPTIONS["summary_language"],
-              label="Summary language",
-              interactive=True)
+      summary_language = gr.Dropdown(choices=SUPPORTED_LANGUAGES +
+                                     [ANY_LANGUAGE],
+                                     value=ANY_LANGUAGE,
+                                     label="Summary language",
+                                     interactive=True)
 
-        with gr.Row():
-          filtered_summarization = gr.DataFrame(
-              headers=["Rank", "Model", "Elo rating"],
-              datatype=["number", "str", "number"],
-              value=lambda: load_elo_ratings(
-                  LeaderboardTab.SUMMARIZATION, DEFAULT_FILTER_OPTIONS[
-                      "summary_language"]),
-              elem_classes="leaderboard")
+      filtered_summarization = gr.DataFrame(
+          headers=["Rank", "Model", "Elo rating"],
+          datatype=["number", "str", "number"],
+          value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION,
+                                         ANY_LANGUAGE),
+          elem_classes="leaderboard",
+          visible=False)
 
-      summary_language.change(fn=update_filtered_leaderboard,
-                              inputs=[
-                                  gr.State(LeaderboardTab.SUMMARIZATION),
-                                  summary_language,
-                                  gr.State(),
-                                  gr.State()
-                              ],
-                              outputs=filtered_summarization)
-
-      gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
-                   datatype=["number", "str", "number"],
-                   value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION),
-                   every=LEADERBOARD_UPDATE_INTERVAL,
-                   elem_classes="leaderboard")
+      original_summarization = gr.Dataframe(
+          headers=["Rank", "Model", "Elo rating"],
+          datatype=["number", "str", "number"],
+          value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION),
+          every=LEADERBOARD_UPDATE_INTERVAL,
+          elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
+
+      summary_language.change(
+          fn=update_filtered_leaderboard,
+          inputs=[
+              gr.State(LeaderboardTab.SUMMARIZATION), summary_language,
+              gr.State(),
+              gr.State()
+          ],
+          outputs=filtered_summarization).then(
+              fn=toggle_leaderboard,
+              inputs=summary_language,
+              outputs=[original_summarization, filtered_summarization])
 
     with gr.Tab(LeaderboardTab.TRANSLATION.value):
-      with gr.Accordion("Filter", open=False) as translation_filter:
-        with gr.Row():
-          source_language = gr.Dropdown(
-              choices=SUPPORTED_TRANSLATION_LANGUAGES + [ANY_LANGUAGE],
-              label="Source language",
-              value=DEFAULT_FILTER_OPTIONS["source_language"],
-              interactive=True)
-          target_language = gr.Dropdown(
-              choices=SUPPORTED_TRANSLATION_LANGUAGES + [ANY_LANGUAGE],
-              label="Target language",
-              value=DEFAULT_FILTER_OPTIONS["target_language"],
-              interactive=True)
+      with gr.Row():
+        source_language = gr.Dropdown(choices=SUPPORTED_LANGUAGES +
+                                      [ANY_LANGUAGE],
+                                      label="Source language",
+                                      value=ANY_LANGUAGE,
+                                      interactive=True)
+        target_language = gr.Dropdown(choices=SUPPORTED_LANGUAGES +
+                                      [ANY_LANGUAGE],
+                                      label="Target language",
+                                      value=ANY_LANGUAGE,
+                                      interactive=True)
 
-        with gr.Row():
-          filtered_translation = gr.DataFrame(
-              headers=["Rank", "Model", "Elo rating"],
-              datatype=["number", "str", "number"],
-              value=lambda: load_elo_ratings(
-                  LeaderboardTab.TRANSLATION, DEFAULT_FILTER_OPTIONS[
-                      "source_language"], DEFAULT_FILTER_OPTIONS[
-                          "target_language"]),
-              elem_classes="leaderboard")
+      filtered_translation = gr.DataFrame(
+          headers=["Rank", "Model", "Elo rating"],
+          datatype=["number", "str", "number"],
+          value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION,
+                                         ANY_LANGUAGE, ANY_LANGUAGE),
+          elem_classes="leaderboard",
+          visible=False)
 
-          source_language.change(fn=update_filtered_leaderboard,
-                                 inputs=[
-                                     gr.State(LeaderboardTab.TRANSLATION),
-                                     gr.State(), source_language,
-                                     target_language
-                                 ],
-                                 outputs=filtered_translation)
-          target_language.change(fn=update_filtered_leaderboard,
-                                 inputs=[
-                                     gr.State(LeaderboardTab.TRANSLATION),
-                                     gr.State(), source_language,
-                                     target_language
-                                 ],
-                                 outputs=filtered_translation)
-
-      # When filter options are changed, the accordion keeps closed.
-      # To avoid this, we open the accordion when the filter options are changed.
-      summary_language.change(fn=lambda: gr.Accordion(open=True),
-                              outputs=summarization_filter)
-      source_language.change(fn=lambda: gr.Accordion(open=True),
-                             outputs=translation_filter)
-      target_language.change(fn=lambda: gr.Accordion(open=True),
-                             outputs=translation_filter)
-
-      gr.Dataframe(headers=["Rank", "Model", "Elo rating"],
-                   datatype=["number", "str", "number"],
-                   value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION),
-                   every=LEADERBOARD_UPDATE_INTERVAL,
-                   elem_classes="leaderboard")
+      original_translation = gr.Dataframe(
+          headers=["Rank", "Model", "Elo rating"],
+          datatype=["number", "str", "number"],
+          value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION),
+          every=LEADERBOARD_UPDATE_INTERVAL,
+          elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
+
+      source_language.change(
+          fn=update_filtered_leaderboard,
+          inputs=[
+              gr.State(LeaderboardTab.TRANSLATION),
+              gr.State(), source_language, target_language
+          ],
+          outputs=filtered_translation).then(
+              fn=toggle_leaderboard,
+              inputs=source_language,
+              outputs=[original_translation, filtered_translation])
+      target_language.change(
+          fn=update_filtered_leaderboard,
+          inputs=[
+              gr.State(LeaderboardTab.TRANSLATION),
+              gr.State(), source_language, target_language
+          ],
+          outputs=filtered_translation).then(
+              fn=toggle_leaderboard,
+              inputs=target_language,
+              outputs=[original_translation, filtered_translation])
