@@ -14,9 +14,11 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
 
 ## How to run locally
 
-1. **Set up a virtual environment**
+1. **Install Poetry and plugins**
 
-   Poetry will automatically create a virtual environment for your project. If you haven't installed Poetry, you can do so by following the instructions on the [Poetry website](https://python-poetry.org/docs/#installation).
+   First, ensure that Poetry is installed. You can install it by following the instructions on the [Poetry website](https://python-poetry.org/docs/#installing-with-pipx).
+
+   After installing Poetry, install the `poetry-plugin-sort` by following the detailed instructions provided on its [GitHub page](https://github.com/andrei-shabanski/poetry-plugin-sort?tab=readme-ov-file#installation).
 
 1. **Activate the virtual environment**
 
