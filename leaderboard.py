@@ -103,8 +103,19 @@ def load_elo_ratings(tab,
   ratings = compute_elo(battles)
 
   sorted_ratings = sorted(ratings.items(), key=lambda x: x[1], reverse=True)
-  return [[i + 1, model, math.floor(rating + 0.5)]
-          for i, (model, rating) in enumerate(sorted_ratings)]
+
+  rank = 0
+  last_rating = None
+  rating_rows = []
+  for index, (model, rating) in enumerate(sorted_ratings):
+    int_rating = math.floor(rating + 0.5)
+    if int_rating != last_rating:
+      rank = index + 1
+
+    rating_rows.append([rank, model, int_rating])
+    last_rating = int_rating
+
+  return rating_rows
 
 
 LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
