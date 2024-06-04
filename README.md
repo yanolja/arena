@@ -14,21 +14,31 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
 
 ## How to run locally
 
-1. **Set up a virtual environment**
+1. **Install Poetry and plugins**
 
-   Before installing dependencies, it's recommended to create a virtual environment.
+   First, ensure that Poetry is installed. You can install it by following the instructions on the [Poetry website](https://python-poetry.org/docs/#installing-with-pipx).
+
+   After installing Poetry, install the `poetry-plugin-sort` by following the detailed instructions provided on its [GitHub page](https://github.com/andrei-shabanski/poetry-plugin-sort?tab=readme-ov-file#installation).
+
+1. **Activate the virtual environment**
+
+   Use the following command to activate the virtual environment that Poetry has created:
+
+   ```shell
+   poetry shell
+   ```
 
 1. **Install dependencies**
 
    With the virtual environment activated, install the project dependencies:
 
    ```shell
-   pip install -r requirements.txt
+   poetry install
    ```
 
 1. **Run the app**
 
-   Set your OpenAI API key as an environment variable and start the application:
+   Set your environment variables and run the app:
 
    ```shell
    GOOGLE_CLOUD_PROJECT=<your project id> \
