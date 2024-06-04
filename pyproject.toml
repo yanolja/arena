@@ -1,4 +1,5 @@
 [tool.poetry]
+package-mode = false
 name = "arena"
 version = "0.1.0"
 description = ""
@@ -13,6 +14,9 @@ gradio = "^4.32.1"
 lingua-language-detector = "^2.0.2"
 litellm = "^1.39.5"
 
+[tool.poetry-auto-export]
+output = "requirements.txt"
+without_hashes = true
 
 [build-system]
 requires = ["poetry-core"]
