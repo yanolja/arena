@@ -87,6 +87,7 @@ scheduler.start()
 
 
 def signal_handler(sig, frame):
+  # We delete unused arguments to avoid a lint error.
   del sig, frame
   scheduler.shutdown()
   sys.exit(0)
