@@ -4,6 +4,7 @@ emoji: ⚔️
 colorFrom: red
 colorTo: purple
 sdk: gradio
+python_version: 3.11
 app_file: app.py
 pinned: false
 ---
@@ -18,7 +19,11 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
 
    First, ensure that Poetry is installed. You can install it by following the instructions on the [Poetry website](https://python-poetry.org/docs/#installing-with-pipx).
 
-   After installing Poetry, install the `poetry-plugin-sort` by following the detailed instructions provided on its [GitHub page](https://github.com/andrei-shabanski/poetry-plugin-sort?tab=readme-ov-file#installation).
+   After installing Poetry, install the following plugins:
+
+   - [`poetry-plugin-sort`](https://github.com/andrei-shabanski/poetry-plugin-sort?tab=readme-ov-file#installation)
+   - [`poetry-plugin-export`](https://github.com/python-poetry/poetry-plugin-export?tab=readme-ov-file#installation)
+   - [`poetry-auto-export`](https://github.com/Ddedalus/poetry-auto-export?tab=readme-ov-file#installation)
 
 1. **Activate the virtual environment**
 
