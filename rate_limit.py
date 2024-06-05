@@ -27,7 +27,7 @@ class RateLimiter:
 
   def __init__(self, limit=10000, period_in_seconds=60 * 60 * 24):
     # Maps tokens to the last time they made a request.
-    # E.g, {"some-token": datetime.datetime(2021, 8, 1, 0, 0, 0)}
+    # E.g, {"sometoken": datetime.datetime(2021, 8, 1, 0, 0, 0)}
     self.requests = {}
 
     # The number of requests made.
