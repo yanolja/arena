@@ -1,11 +1,12 @@
 [tool.poetry]
+package-mode = false
 name = "arena"
 version = "0.1.0"
 description = ""
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 firebase-admin = "^6.5.0"
 google-cloud-secret-manager = "^2.20.0"
 google-generativeai = "^0.5.4"
@@ -13,6 +14,9 @@ gradio = "^4.32.1"
 lingua-language-detector = "^2.0.2"
 litellm = "^1.39.5"
 
+[tool.poetry-auto-export]
+output = "requirements.txt"
+without_hashes = true
 
 [build-system]
 requires = ["poetry-core"]
