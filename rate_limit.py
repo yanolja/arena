@@ -2,9 +2,10 @@
 This module contains functions for rate limiting requests.
 """
 
-import datetime
+from datetime import datetime
 import signal
 import sys
+from typing import Dict
 from uuid import uuid4
 
 from apscheduler.schedulers import background
@@ -27,8 +28,8 @@ class RateLimiter:
 
   def __init__(self, limit=10000, period_in_seconds=60 * 60 * 24):
     # Maps tokens to the last time they made a request.
-    # E.g, {"sometoken": datetime.datetime(2021, 8, 1, 0, 0, 0)}
-    self.requests = {}
+    # E.g, {"sometoken": datetime(2021, 8, 1, 0, 0, 0)}
+    self.last_request_times: Dict[str, datetime] = {}
 
     # The number of requests made.
     # This count is reset to zero at the end of each period.
@@ -45,25 +46,25 @@ class RateLimiter:
     self.scheduler.start()
 
   def request_allowed(self, token: str):
-    if not token or token not in self.requests:
+    if not token or token not in self.last_request_times:
       raise InvalidTokenException()
 
-    if (datetime.datetime.now() - self.requests[token]).seconds < 5:
+    if (datetime.now() - self.last_request_times[token]).seconds < 5:
       raise UserRateLimitException()
 
     if self.request_count >= self.limit:
       raise SystemRateLimitException()
 
-    self.requests[token] = datetime.datetime.now()
+    self.last_request_times[token] = datetime.now()
     self.request_count += 1
 
   def initialize_request(self, token: str):
-    self.requests[token] = datetime.datetime.min
+    self.last_request_times[token] = datetime.min
 
   def clean_up(self):
-    for token, last_request_time in dict(self.requests).items():
-      if (datetime.datetime.now() - last_request_time).days >= 1:
-        del self.requests[token]
+    for token, last_request_time in dict(self.last_request_times).items():
+      if (datetime.now() - last_request_time).days >= 1:
+        del self.last_request_times[token]
 
   def reset_request_count(self):
     self.request_count = 0
@@ -92,8 +93,7 @@ def set_token(app: gr.Blocks):
 
 
 def signal_handler(sig, frame):
-  # We delete unused arguments to avoid a lint error.
-  del sig, frame
+  del sig, frame  # Unused.
   rate_limiter.scheduler.shutdown()
   sys.exit(0)
 
