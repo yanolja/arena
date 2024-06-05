@@ -29,6 +29,10 @@ DEFAULT_SUMMARIZE_INSTRUCTION = "Summarize the following text, maintaining the l
 DEFAULT_TRANSLATE_INSTRUCTION = "Translate the following text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
 
 
+class ContextWindowExceededError(Exception):
+  pass
+
+
 class Model:
 
   def __init__(
@@ -49,14 +53,18 @@ class Model:
     self.translate_instruction = translateInstruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
 
   def completion(self, messages: List, max_tokens: float = None) -> str:
-    response = litellm.completion(model=self.provider + "/" +
-                                  self.name if self.provider else self.name,
-                                  api_key=self.api_key,
-                                  api_base=self.api_base,
-                                  messages=messages,
-                                  max_tokens=max_tokens)
+    try:
+      response = litellm.completion(model=self.provider + "/" +
+                                    self.name if self.provider else self.name,
+                                    api_key=self.api_key,
+                                    api_base=self.api_base,
+                                    messages=messages,
+                                    max_tokens=max_tokens)
 
-    return response.choices[0].message.content
+      return response.choices[0].message.content
+
+    except litellm.ContextWindowExceededError as e:
+      raise ContextWindowExceededError() from e
 
 
 supported_models: List[Model] = [
@@ -70,6 +78,9 @@ def check_models(models: List[Model]):
     print(f"Checking model {model.name}...")
     try:
       model.completion(messages=[{
+          "role": "system",
+          "content": "You are a kind person."
+      }, {
           "role": "user",
           "content": "Hello."
       }],

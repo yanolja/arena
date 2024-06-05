@@ -4,6 +4,7 @@ This module contains functions for generating responses using LLMs.
 
 import enum
 from http import cookies
+import logging
 from random import sample
 from typing import List
 from uuid import uuid4
@@ -12,14 +13,27 @@ from firebase_admin import firestore
 import gradio as gr
 
 from leaderboard import db
+from model import ContextWindowExceededError
 from model import Model
 from model import supported_models
 import rate_limit
 from rate_limit import rate_limiter
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-def create_history(model_name: str, instruction: str, prompt: str,
-                   response: str):
+
+def get_history_collection(category: str):
+  if category == Category.SUMMARIZE.value:
+    return db.collection("arena-summarization-history")
+
+  if category == Category.TRANSLATE.value:
+    return db.collection("arena-translation-history")
+
+
+def create_history(category: str, model_name: str, instruction: str,
+                   prompt: str, response: str):
   doc_id = uuid4().hex
 
   doc = {
@@ -31,7 +45,7 @@ def create_history(model_name: str, instruction: str, prompt: str,
       "timestamp": firestore.SERVER_TIMESTAMP
   }
 
-  doc_ref = db.collection("arena-history").document(doc_id)
+  doc_ref = get_history_collection(category).document(doc_id)
   doc_ref.set(doc)
 
 
@@ -91,13 +105,17 @@ def get_responses(prompt: str, category: str, source_lang: str,
           "role": "user",
           "content": prompt
       }])
-      create_history(model.name, instruction, prompt, response)
+      create_history(category, model.name, instruction, prompt, response)
       responses.append(response)
 
-    # TODO(#1): Narrow down the exception type.
-    except Exception as e:  # pylint: disable=broad-except
-      print(f"Error with model {model.name}: {e}")
-      raise gr.Error("Failed to get response. Please try again.")
+    except ContextWindowExceededError as e:
+      logger.exception("Context window exceeded for model %s.", model.name)
+      raise gr.Error(
+          "The prompt is too long. Please try again with a shorter prompt."
+      ) from e
+    except Exception as e:
+      logger.exception("Failed to get response from model %s.", model.name)
+      raise gr.Error("Failed to get response. Please try again.") from e
 
   model_names = [model.name for model in models]
 
