@@ -13,17 +13,18 @@ import gradio as gr
 
 from credentials import get_credentials_json
 
-RATINGS_COLLECTION = os.getenv("RATINGS_COLLECTION")
-if RATINGS_COLLECTION is None:
-  raise ValueError("Environment variable RATINGS_COLLECTION is not set")
 
-SUMMARIZATIONS_COLLECTION = os.getenv("SUMMARIZATIONS_COLLECTION")
-if SUMMARIZATIONS_COLLECTION is None:
-  raise ValueError("Environment variable SUMMARIZATIONS_COLLECTION is not set")
+def get_environment_variable(name: str) -> str:
+  value = os.getenv(name)
+  if value is None:
+    raise ValueError(f"Environment variable {name} is not set")
+  return value
 
-TRANSLATIONS_COLLECTION = os.getenv("TRANSLATIONS_COLLECTION")
-if TRANSLATIONS_COLLECTION is None:
-  raise ValueError("Environment variable TRANSLATIONS_COLLECTION is not set")
+
+RATINGS_COLLECTION = get_environment_variable("RATINGS_COLLECTION")
+SUMMARIZATIONS_COLLECTION = get_environment_variable(
+    "SUMMARIZATIONS_COLLECTION")
+TRANSLATIONS_COLLECTION = get_environment_variable("TRANSLATIONS_COLLECTION")
 
 
 class Category(enum.Enum):
