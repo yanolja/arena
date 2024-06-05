@@ -44,6 +44,9 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
    GOOGLE_CLOUD_PROJECT=<your project id> \
    CREDENTIALS_PATH=<your crednetials path> \
    MODELS_SECRET=<your secret> \
+   RATINGS_COLLECTION=<your collection> \
+   SUMMARIZATIONS_COLLECTION=<your collection> \
+   TRANSLATIONS_COLLECTION=<your collection> \
    OPENAI_API_KEY=<your key> \
    ANTHROPIC_API_KEY=<your key> \
    MISTRAL_API_KEY=<your key> \
