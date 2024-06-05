@@ -26,15 +26,14 @@ SUMMARIZATIONS_COLLECTION = get_environment_variable(
     "SUMMARIZATIONS_COLLECTION")
 TRANSLATIONS_COLLECTION = get_environment_variable("TRANSLATIONS_COLLECTION")
 
+if gr.NO_RELOAD:
+  firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
+  db = firestore.client()
+
 
 class Category(enum.Enum):
   SUMMARIZATION = "summarization"
   TRANSLATION = "translation"
-
-
-if gr.NO_RELOAD:
-  firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
-  db = firestore.client()
 
 
 class Rating:
