@@ -78,7 +78,7 @@ def get_responses(prompt: str, category: str, source_lang: str,
         "Your session has expired. Please refresh the page to continue.") from e
   except rate_limit.UserRateLimitException as e:
     raise gr.Error(
-        "You've made too many requests in a short period. Please try again later."  # pylint: disable=line-too-long
+        "You have made too many requests in a short period. Please try again later."  # pylint: disable=line-too-long
     ) from e
   except rate_limit.SystemRateLimitException as e:
     raise gr.Error(

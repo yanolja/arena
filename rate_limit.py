@@ -25,11 +25,24 @@ class SystemRateLimitException(Exception):
 
 class RateLimiter:
 
-  def __init__(self, daily_limit=10000):
+  def __init__(self, limit=10000, period_in_seconds=60 * 60 * 24):
+    # Maps tokens to the last time they made a request.
+    # E.g, {"some-token": datetime.datetime(2021, 8, 1, 0, 0, 0)}
     self.requests = {}
+
+    # The number of requests made.
+    # This count is reset to zero at the end of each period.
     self.request_count = 0
-    self.daily_limit = daily_limit
+
+    # The maximum number of requests allowed within the time period.
+    self.limit = limit
+
     self.scheduler = background.BackgroundScheduler()
+    self.scheduler.add_job(self.clean_up, "interval", seconds=60 * 60 * 24)
+    self.scheduler.add_job(self.reset_request_count,
+                           "interval",
+                           seconds=period_in_seconds)
+    self.scheduler.start()
 
   def request_allowed(self, token: str):
     if not token or token not in self.requests:
@@ -38,7 +51,7 @@ class RateLimiter:
     if (datetime.datetime.now() - self.requests[token]).seconds < 5:
       raise UserRateLimitException()
 
-    if self.request_count >= self.daily_limit:
+    if self.request_count >= self.limit:
       raise SystemRateLimitException()
 
     self.requests[token] = datetime.datetime.now()
@@ -78,18 +91,10 @@ def set_token(app: gr.Blocks):
   token.change(fn=lambda _: None, js=set_token_client, inputs=[token])
 
 
-scheduler = background.BackgroundScheduler()
-scheduler.add_job(rate_limiter.clean_up, "interval", seconds=60 * 60 * 24)
-scheduler.add_job(rate_limiter.reset_request_count,
-                  "interval",
-                  seconds=60 * 60 * 24)
-scheduler.start()
-
-
 def signal_handler(sig, frame):
   # We delete unused arguments to avoid a lint error.
   del sig, frame
-  scheduler.shutdown()
+  rate_limiter.scheduler.shutdown()
   sys.exit(0)
 
 

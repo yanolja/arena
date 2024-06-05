@@ -1,4 +1,5 @@
 [tool.poetry]
+package-mode = false
 name = "arena"
 version = "0.1.0"
 description = ""
@@ -6,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+apscheduler = "^3.10.4"
 firebase-admin = "^6.5.0"
 google-cloud-secret-manager = "^2.20.0"
 google-generativeai = "^0.5.4"
