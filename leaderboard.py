@@ -122,8 +122,8 @@ def build_leaderboard():
   with gr.Tabs():
 
     # Returns (original leaderboard, filtered leaderboard).
-    def toggle_leaderboard(value: str) -> Tuple[gr.Dataframe, gr.Dataframe]:
-      filter_chosen = value != ANY_LANGUAGE
+    def toggle_leaderboard(language: str) -> Tuple[gr.Dataframe, gr.Dataframe]:
+      filter_chosen = language != ANY_LANGUAGE
       return gr.Dataframe(visible=not filter_chosen), gr.Dataframe(
           visible=filter_chosen)
 
@@ -154,8 +154,8 @@ def build_leaderboard():
           fn=update_filtered_leaderboard,
           inputs=[
               gr.State(LeaderboardTab.SUMMARIZATION), summary_language,
-              gr.State(),
-              gr.State()
+              gr.State(None),
+              gr.State(None)
           ],
           outputs=filtered_summarization).then(
               fn=toggle_leaderboard,
@@ -195,7 +195,7 @@ def build_leaderboard():
           fn=update_filtered_leaderboard,
           inputs=[
               gr.State(LeaderboardTab.TRANSLATION),
-              gr.State(), source_language, target_language
+              gr.State(None), source_language, target_language
           ],
           outputs=filtered_translation).then(
               fn=toggle_leaderboard,
@@ -205,7 +205,7 @@ def build_leaderboard():
           fn=update_filtered_leaderboard,
           inputs=[
               gr.State(LeaderboardTab.TRANSLATION),
-              gr.State(), source_language, target_language
+              gr.State(None), source_language, target_language
           ],
           outputs=filtered_translation).then(
               fn=toggle_leaderboard,
