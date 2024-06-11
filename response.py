@@ -11,7 +11,7 @@ from uuid import uuid4
 from firebase_admin import firestore
 import gradio as gr
 
-from leaderboard import db
+from db import db
 from model import ContextWindowExceededError
 from model import Model
 from model import supported_models
@@ -20,7 +20,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
+# TODO(#37): Move DB operations to db.py.
 def get_history_collection(category: str):
   if category == Category.SUMMARIZE.value:
     return db.collection("arena-summarization-history")
