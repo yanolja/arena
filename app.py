@@ -10,7 +10,8 @@ import lingua
 
 from db import db
 from leaderboard import build_leaderboard
-from leaderboard import SUPPORTED_TRANSLATION_LANGUAGES
+from leaderboard import db
+from leaderboard import SUPPORTED_LANGUAGES
 from model import check_models
 from model import supported_models
 import response
@@ -88,14 +89,14 @@ with gr.Blocks(title="Arena", css=css) as app:
         info="The chosen category determines the instruction sent to the LLMs.")
 
     source_language = gr.Dropdown(
-        choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        choices=SUPPORTED_LANGUAGES,
         value="English",
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
-        choices=SUPPORTED_TRANSLATION_LANGUAGES,
+        choices=SUPPORTED_LANGUAGES,
         value="Spanish",
         label="Target language",
         info="Choose the target language for translation.",
