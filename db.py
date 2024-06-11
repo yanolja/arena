@@ -1,6 +1,7 @@
 """
 This module handles the management of the database.
 """
+from dataclasses import dataclass
 import enum
 import os
 from typing import List
@@ -14,17 +15,16 @@ import gradio as gr
 from credentials import get_credentials_json
 
 
-def get_environment_variable(name: str) -> str:
+def get_required_env(name: str) -> str:
   value = os.getenv(name)
   if value is None:
     raise ValueError(f"Environment variable {name} is not set")
   return value
 
 
-RATINGS_COLLECTION = get_environment_variable("RATINGS_COLLECTION")
-SUMMARIZATIONS_COLLECTION = get_environment_variable(
-    "SUMMARIZATIONS_COLLECTION")
-TRANSLATIONS_COLLECTION = get_environment_variable("TRANSLATIONS_COLLECTION")
+RATINGS_COLLECTION = get_required_env("RATINGS_COLLECTION")
+SUMMARIZATIONS_COLLECTION = get_required_env("SUMMARIZATIONS_COLLECTION")
+TRANSLATIONS_COLLECTION = get_required_env("TRANSLATIONS_COLLECTION")
 
 if gr.NO_RELOAD:
   firebase_admin.initialize_app(credentials.Certificate(get_credentials_json()))
@@ -36,11 +36,10 @@ class Category(enum.Enum):
   TRANSLATION = "translation"
 
 
+@dataclass
 class Rating:
-
-  def __init__(self, model: str, rating: int):
-    self.model = model
-    self.rating = rating
+  model: str
+  rating: int
 
 
 def get_ratings(category: Category, source_lang: str | None,
@@ -63,19 +62,16 @@ def set_ratings(category: Category, ratings: List[Rating],
                     [lang for lang in (source_lang, target_lang) if lang])
   doc_ref = db.collection(RATINGS_COLLECTION).document(doc_id)
 
-  batch = db.batch()
-  for rating in ratings:
-    batch.set(doc_ref, {rating.model: rating.rating}, merge=True)
-  batch.set(doc_ref, {"timestamp": firestore.SERVER_TIMESTAMP}, merge=True)
-  batch.commit()
+  new_ratings = {rating.model: rating.rating for rating in ratings}
+  new_ratings["timestamp"] = firestore.SERVER_TIMESTAMP
+  doc_ref.set(new_ratings, merge=True)
 
 
+@dataclass
 class Battle:
-
-  def __init__(self, model_a: str, model_b: str, winner: str):
-    self.model_a = model_a
-    self.model_b = model_b
-    self.winner = winner
+  model_a: str
+  model_b: str
+  winner: str
 
 
 def get_battles(category: Category, source_lang: str | None,
@@ -102,6 +98,9 @@ def get_battles(category: Category, source_lang: str | None,
     if lower_target_lang:
       collection = collection.where(filter=base_query.FieldFilter(
           "target_language", "==", lower_target_lang))
+
+  else:
+    raise ValueError(f"Invalid category: {category}")
 
   docs = collection.stream()
   battles = []
