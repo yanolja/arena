@@ -67,6 +67,13 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 def get_responses(prompt: str, category: str, source_lang: str,
                   target_lang: str, request: gr.Request):
+  if not category:
+    raise gr.Error("Please select a category.")
+
+  if category == Category.TRANSLATE.value and (not source_lang or
+                                               not target_lang):
+    raise gr.Error("Please select source and target languages.")
+
   cookie = cookies.SimpleCookie()
   cookie.load(request.headers["cookie"])
   token = cookie["token"].value if "token" in cookie else None
@@ -84,13 +91,6 @@ def get_responses(prompt: str, category: str, source_lang: str,
     raise gr.Error(
         "Our service is currently experiencing high traffic. Please try again later."  # pylint: disable=line-too-long
     ) from e
-
-  if not category:
-    raise gr.Error("Please select a category.")
-
-  if category == Category.TRANSLATE.value and (not source_lang or
-                                               not target_lang):
-    raise gr.Error("Please select source and target languages.")
 
   models: List[Model] = sample(list(supported_models), 2)
   responses = []
