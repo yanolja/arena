@@ -129,7 +129,6 @@ def build_leaderboard():
           fn=update_filtered_leaderboard,
           inputs=[
               gr.State(LeaderboardTab.SUMMARIZATION), summary_language,
-              gr.State(None),
               gr.State(None)
           ],
           outputs=filtered_summarization).then(
@@ -170,8 +169,8 @@ def build_leaderboard():
       source_language.change(
           fn=update_filtered_leaderboard,
           inputs=[
-              gr.State(LeaderboardTab.TRANSLATION),
-              gr.State(None), source_language, target_language
+              gr.State(LeaderboardTab.TRANSLATION), source_language,
+              target_language
           ],
           outputs=filtered_translation).then(
               fn=toggle_leaderboard,
@@ -180,8 +179,8 @@ def build_leaderboard():
       target_language.change(
           fn=update_filtered_leaderboard,
           inputs=[
-              gr.State(LeaderboardTab.TRANSLATION),
-              gr.State(None), source_language, target_language
+              gr.State(LeaderboardTab.TRANSLATION), source_language,
+              target_language
           ],
           outputs=filtered_translation).then(
               fn=toggle_leaderboard,
