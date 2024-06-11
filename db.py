@@ -56,10 +56,13 @@ def get_ratings(category: Category, source_lang: str | None,
   return [Rating(model, rating) for model, rating in doc_dict.items()]
 
 
-def set_ratings(category: Category, ratings: List[Rating],
-                source_lang: str | None, target_lang: str | None):
-  doc_id = "#".join([category.value] +
-                    [lang for lang in (source_lang, target_lang) if lang])
+def set_ratings(category: Category, ratings: List[Rating], source_lang: str,
+                target_lang: str | None):
+  lower_source_lang = source_lang.lower()
+  lower_target_lang = target_lang.lower() if target_lang else None
+
+  doc_id = "#".join([category.value, lower_source_lang] +
+                    ([lower_target_lang] if lower_target_lang else []))
   doc_ref = db.collection(RATINGS_COLLECTION).document(doc_id)
 
   new_ratings = {rating.model: rating.rating for rating in ratings}

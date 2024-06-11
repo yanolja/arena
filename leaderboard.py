@@ -50,12 +50,14 @@ def compute_elo(battles: List[db.Battle],
   return {model: math.floor(rating + 0.5) for model, rating in rating.items()}
 
 
-def load_elo_ratings(tab, source_lang: str | None, target_lang: str | None):
+def load_elo_ratings(tab, source_lang: str, target_lang: str | None):
   category = db.Category.SUMMARIZATION if tab == LeaderboardTab.SUMMARIZATION else db.Category.TRANSLATION
 
   # TODO(#37): Call db.get_ratings and return the ratings if exists.
 
-  battles = get_battles(category, source_lang, target_lang)
+  battles = get_battles(category,
+                        None if source_lang == ANY_LANGUAGE else source_lang,
+                        None if target_lang == ANY_LANGUAGE else target_lang)
   if not battles:
     return
 
@@ -87,7 +89,7 @@ LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
 
-def update_filtered_leaderboard(tab, source_lang: str, target_lang: str):
+def update_filtered_leaderboard(tab, source_lang: str, target_lang: str | None):
   new_value = load_elo_ratings(tab, source_lang, target_lang)
   return gr.update(value=new_value)
 
@@ -119,8 +121,8 @@ def build_leaderboard():
       original_summarization = gr.Dataframe(
           headers=["Rank", "Model", "Elo rating"],
           datatype=["number", "str", "number"],
-          value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION, None,
-                                         None),
+          value=lambda: load_elo_ratings(LeaderboardTab.SUMMARIZATION,
+                                         ANY_LANGUAGE, None),
           every=LEADERBOARD_UPDATE_INTERVAL,
           elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)
@@ -160,8 +162,8 @@ def build_leaderboard():
       original_translation = gr.Dataframe(
           headers=["Rank", "Model", "Elo rating"],
           datatype=["number", "str", "number"],
-          value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION, None, None
-                                        ),
+          value=lambda: load_elo_ratings(LeaderboardTab.TRANSLATION,
+                                         ANY_LANGUAGE, ANY_LANGUAGE),
           every=LEADERBOARD_UPDATE_INTERVAL,
           elem_classes="leaderboard")
       gr.Markdown(LEADERBOARD_INFO)

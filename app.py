@@ -10,7 +10,6 @@ import lingua
 
 from db import db
 from leaderboard import build_leaderboard
-from leaderboard import db
 from leaderboard import SUPPORTED_LANGUAGES
 from model import check_models
 from model import supported_models
