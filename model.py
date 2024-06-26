@@ -2,28 +2,10 @@
 This module contains functions to interact with the models.
 """
 
-from enum import Enum
 import json
-import os
 from typing import List
 
-from google.cloud import secretmanager
-from google.oauth2 import service_account
 import litellm
-
-from credentials import get_credentials_json
-
-GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
-MODELS_SECRET = os.environ.get("MODELS_SECRET")
-
-secretmanager_client = secretmanager.SecretManagerServiceClient(
-    credentials=service_account.Credentials.from_service_account_info(
-        get_credentials_json()))
-models_secret = secretmanager_client.access_secret_version(
-    name=secretmanager_client.secret_version_path(GOOGLE_CLOUD_PROJECT,
-                                                  MODELS_SECRET, "latest"))
-decoded_secret = models_secret.payload.data.decode("UTF-8")
-
 
 DEFAULT_SUMMARIZE_INSTRUCTION = "Summarize the given text without changing the language of it."  # pylint: disable=line-too-long
 DEFAULT_TRANSLATE_INSTRUCTION = "Translate the given text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
