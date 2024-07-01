@@ -3,30 +3,12 @@ This module contains functions to interact with the models.
 """
 
 import json
-import os
 from typing import List
 
-from google.cloud import secretmanager
-from google.oauth2 import service_account
 import litellm
 
-from credentials import get_credentials_json
-
-GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
-MODELS_SECRET = os.environ.get("MODELS_SECRET")
-
-secretmanager_client = secretmanager.SecretManagerServiceClient(
-    credentials=service_account.Credentials.from_service_account_info(
-        get_credentials_json()))
-models_secret = secretmanager_client.access_secret_version(
-    name=secretmanager_client.secret_version_path(GOOGLE_CLOUD_PROJECT,
-                                                  MODELS_SECRET, "latest"))
-decoded_secret = models_secret.payload.data.decode("UTF-8")
-
-supported_models_json = json.loads(decoded_secret)
-
-DEFAULT_SUMMARIZE_INSTRUCTION = "Summarize the following text, maintaining the language of the text."  # pylint: disable=line-too-long
-DEFAULT_TRANSLATE_INSTRUCTION = "Translate the following text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
+DEFAULT_SUMMARIZE_INSTRUCTION = "Summarize the given text without changing the language of it."  # pylint: disable=line-too-long
+DEFAULT_TRANSLATE_INSTRUCTION = "Translate the given text from {source_lang} to {target_lang}."  # pylint: disable=line-too-long
 
 
 class ContextWindowExceededError(Exception):
@@ -39,37 +21,106 @@ class Model:
       self,
       name: str,
       provider: str = None,
-      # The JSON keys are in camelCase. To unpack these keys into
-      # Model attributes, we need to use the same camelCase names.
-      apiKey: str = None,  # pylint: disable=invalid-name
-      apiBase: str = None,  # pylint: disable=invalid-name
-      summarizeInstruction: str = None,  # pylint: disable=invalid-name
-      translateInstruction: str = None):  # pylint: disable=invalid-name
+      api_key: str = None,
+      api_base: str = None,
+      summarize_instruction: str = None,
+      translate_instruction: str = None,
+  ):
     self.name = name
     self.provider = provider
-    self.api_key = apiKey
-    self.api_base = apiBase
-    self.summarize_instruction = summarizeInstruction or DEFAULT_SUMMARIZE_INSTRUCTION  # pylint: disable=line-too-long
-    self.translate_instruction = translateInstruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
+    self.api_key = api_key
+    self.api_base = api_base
+    self.summarize_instruction = summarize_instruction or DEFAULT_SUMMARIZE_INSTRUCTION  # pylint: disable=line-too-long
+    self.translate_instruction = translate_instruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
 
-  def completion(self, messages: List, max_tokens: float = None) -> str:
+  def completion(self,
+                 instruction: str,
+                 prompt: str,
+                 max_tokens: float = None) -> str:
+    messages = [{
+        "role":
+            "system",
+        "content":
+            instruction + """
+Output following this JSON format:
+{"result": "your result here"}"""
+    }, {
+        "role": "user",
+        "content": prompt
+    }]
     try:
-      response = litellm.completion(model=self.provider + "/" +
-                                    self.name if self.provider else self.name,
-                                    api_key=self.api_key,
-                                    api_base=self.api_base,
-                                    messages=messages,
-                                    max_tokens=max_tokens)
+      response = litellm.completion(
+          model=self.provider + "/" + self.name if self.provider else self.name,
+          api_key=self.api_key,
+          api_base=self.api_base,
+          messages=messages,
+          max_tokens=max_tokens,
+          # Ref: https://litellm.vercel.app/docs/completion/input#optional-fields # pylint: disable=line-too-long
+          response_format={"type": "json_object"})
 
-      return response.choices[0].message.content
+      json_response = response.choices[0].message.content
+      parsed_json = json.loads(json_response)
+      return parsed_json["result"]
+
+    except litellm.ContextWindowExceededError as e:
+      raise ContextWindowExceededError() from e
+    except json.JSONDecodeError as e:
+      raise RuntimeError(f"Failed to get JSON response: {e}") from e
+
+
+class AnthropicModel(Model):
+
+  def completion(self,
+                 instruction: str,
+                 prompt: str,
+                 max_tokens: float = None) -> str:
+    # Ref: https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/increase-consistency#prefill-claudes-response # pylint: disable=line-too-long
+    prefix = "<result>"
+    suffix = "</result>"
+    messages = [{
+        "role":
+            "user",
+        "content":
+            f"""{instruction}
+Output following this format:
+{prefix}...{suffix}
+Text:
+{prompt}"""
+    }, {
+        "role": "assistant",
+        "content": prefix
+    }]
+    try:
+      response = litellm.completion(
+          model=self.provider + "/" + self.name if self.provider else self.name,
+          api_key=self.api_key,
+          api_base=self.api_base,
+          messages=messages,
+          max_tokens=max_tokens,
+      )
 
     except litellm.ContextWindowExceededError as e:
       raise ContextWindowExceededError() from e
 
+    result = response.choices[0].message.content
+    if not result.endswith(suffix):
+      raise RuntimeError(f"Failed to get the formatted response: {result}")
+
+    return result.removesuffix(suffix).strip()
+
 
 supported_models: List[Model] = [
-    Model(name=model_name, **model_config)
-    for model_name, model_config in supported_models_json.items()
+    Model("gpt-4o-2024-05-13"),
+    Model("gpt-4-turbo-2024-04-09"),
+    Model("gpt-4-0125-preview"),
+    Model("gpt-3.5-turbo-0125"),
+    AnthropicModel("claude-3-opus-20240229"),
+    AnthropicModel("claude-3-sonnet-20240229"),
+    AnthropicModel("claude-3-haiku-20240307"),
+    Model("mistral-small-2402", provider="mistral"),
+    Model("mistral-large-2402", provider="mistral"),
+    Model("llama3-8b-8192", provider="groq"),
+    Model("llama3-70b-8192", provider="groq"),
 ]
 
 
@@ -77,14 +128,7 @@ def check_models(models: List[Model]):
   for model in models:
     print(f"Checking model {model.name}...")
     try:
-      model.completion(messages=[{
-          "role": "system",
-          "content": "You are a kind person."
-      }, {
-          "role": "user",
-          "content": "Hello."
-      }],
-                       max_tokens=5)
+      model.completion("You are an AI model.", "Hello, world!")
       print(f"Model {model.name} is available.")
 
     # This check is designed to verify the availability of the models
