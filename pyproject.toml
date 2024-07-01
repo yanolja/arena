@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 firebase-admin = "^6.5.0"
+google-cloud-aiplatform = "^1.57.0"
 google-cloud-secret-manager = "^2.20.0"
 google-generativeai = "^0.5.4"
 gradio = "^4.32.1"
