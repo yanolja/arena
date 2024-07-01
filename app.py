@@ -13,6 +13,7 @@ from leaderboard import db
 from leaderboard import SUPPORTED_LANGUAGES
 from model import check_models
 from model import supported_models
+from rate_limit import set_token
 import response
 from response import get_responses
 
@@ -79,6 +80,8 @@ css = """
 """
 
 with gr.Blocks(title="Arena", css=css) as app:
+  set_token(app)
+
   with gr.Row():
     category_radio = gr.Radio(
         choices=[category.value for category in response.Category],
@@ -199,5 +202,5 @@ if __name__ == "__main__":
   check_models(supported_models)
 
   # We need to enable queue to use generators.
-  app.queue()
-  app.launch(debug=True)
+  app.queue(api_open=False)
+  app.launch(debug=True, show_api=False)
