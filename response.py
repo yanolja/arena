@@ -76,10 +76,10 @@ def get_responses(prompt: str, category: str, source_lang: str,
 
   cookie = cookies.SimpleCookie()
   cookie.load(request.headers["cookie"])
-  token = cookie["token"].value if "token" in cookie else None
+  token = cookie["arena_token"].value if "arena_token" in cookie else None
 
   try:
-    rate_limiter.request_allowed(token)
+    rate_limiter.check_rate_limit(token)
   except rate_limit.InvalidTokenException as e:
     raise gr.Error(
         "Your session has expired. Please refresh the page to continue.") from e

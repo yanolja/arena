@@ -1,5 +1,12 @@
 """
 This module contains functions for rate limiting requests.
+
+The rate limiting system operates on two levels:
+1. User-level rate limiting: Each user (identified by a token) has a
+   configurable minimum interval between requests.
+
+2. System-wide rate limiting: There is a global limit on the total number of 
+   requests across all users within a specified time period.
 """
 
 from datetime import datetime
@@ -39,13 +46,15 @@ class RateLimiter:
     self.limit = limit
 
     self.scheduler = background.BackgroundScheduler()
-    self.scheduler.add_job(self.clean_up, "interval", seconds=60 * 60 * 24)
-    self.scheduler.add_job(self.reset_request_count,
+    self.scheduler.add_job(self._remove_old_tokens,
+                           "interval",
+                           seconds=60 * 60 * 24)
+    self.scheduler.add_job(self._reset_request_count,
                            "interval",
                            seconds=period_in_seconds)
     self.scheduler.start()
 
-  def request_allowed(self, token: str):
+  def check_rate_limit(self, token: str):
     if not token or token not in self.last_request_times:
       raise InvalidTokenException()
 
@@ -61,12 +70,12 @@ class RateLimiter:
   def initialize_request(self, token: str):
     self.last_request_times[token] = datetime.min
 
-  def clean_up(self):
+  def _remove_old_tokens(self):
     for token, last_request_time in dict(self.last_request_times).items():
       if (datetime.now() - last_request_time).days >= 1:
         del self.last_request_times[token]
 
-  def reset_request_count(self):
+  def _reset_request_count(self):
     self.request_count = 0
 
 
@@ -83,7 +92,7 @@ def set_token(app: gr.Blocks):
   set_token_client = """
   function(newToken) {
     const expiresDateString = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `token=${newToken}; expires=${expiresDateString};`;
+    document.cookie = `arena_token=${newToken}; expires=${expiresDateString};`;
   }
   """
 
