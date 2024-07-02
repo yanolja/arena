@@ -3,6 +3,7 @@ This module contains functions to interact with the models.
 """
 
 import json
+import os
 from typing import List
 
 import litellm
@@ -109,6 +110,53 @@ Text:
     return result.removesuffix(suffix).strip()
 
 
+class EeveModel(Model):
+
+  def completion(self,
+                 instruction: str,
+                 prompt: str,
+                 max_tokens: float = None) -> str:
+    json_template = {
+        "type": "object",
+        "properties": {
+            "result": {
+                "type": "string"
+            }
+        }
+    }
+    messages = [{
+        "role":
+            "system",
+        "content":
+            instruction + """
+Output following this JSON format:
+{"result": "your result here"}"""
+    }, {
+        "role": "user",
+        "content": prompt
+    }]
+    try:
+      response = litellm.completion(
+          model=self.provider + "/" + self.name if self.provider else self.name,
+          api_key=self.api_key,
+          api_base=self.api_base,
+          messages=messages,
+          max_tokens=max_tokens,
+          extra_body={
+              "guided_json": json.dumps(json_template),
+              "guided_decoding_backend": "lm-format-enforcer"
+          })
+
+      json_response = response.choices[0].message.content
+      parsed_json = json.loads(json_response)
+      return parsed_json["result"]
+
+    except litellm.ContextWindowExceededError as e:
+      raise ContextWindowExceededError() from e
+    except json.JSONDecodeError as e:
+      raise RuntimeError(f"Failed to get JSON response: {e}") from e
+
+
 supported_models: List[Model] = [
     Model("gpt-4o-2024-05-13"),
     Model("gpt-4-turbo-2024-04-09"),
@@ -121,6 +169,10 @@ supported_models: List[Model] = [
     Model("mistral-large-2402", provider="mistral"),
     Model("llama3-8b-8192", provider="groq"),
     Model("llama3-70b-8192", provider="groq"),
+    EeveModel("yanolja/EEVE-Korean-Instruct-10.8B-v1.0",
+              provider="openai",
+              api_base=os.getenv("EEVE_API_BASE"),
+              api_key=os.getenv("EEVE_API_KEY")),
 ]
 
 
