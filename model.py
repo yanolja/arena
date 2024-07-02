@@ -49,15 +49,18 @@ Output following this JSON format:
         "role": "user",
         "content": prompt
     }]
+
+    additional_kwargs = self._get_completion_kwargs()
+    print(f"additional_kwargs: {additional_kwargs}")
+
     try:
-      response = litellm.completion(
-          model=self.provider + "/" + self.name if self.provider else self.name,
-          api_key=self.api_key,
-          api_base=self.api_base,
-          messages=messages,
-          max_tokens=max_tokens,
-          # Ref: https://litellm.vercel.app/docs/completion/input#optional-fields # pylint: disable=line-too-long
-          response_format={"type": "json_object"})
+      response = litellm.completion(model=self.provider + "/" +
+                                    self.name if self.provider else self.name,
+                                    api_key=self.api_key,
+                                    api_base=self.api_base,
+                                    messages=messages,
+                                    max_tokens=max_tokens,
+                                    **additional_kwargs)
 
       json_response = response.choices[0].message.content
       parsed_json = json.loads(json_response)
@@ -67,6 +70,14 @@ Output following this JSON format:
       raise ContextWindowExceededError() from e
     except json.JSONDecodeError as e:
       raise RuntimeError(f"Failed to get JSON response: {e}") from e
+
+  def _get_completion_kwargs(self):
+    return {
+        # Ref: https://litellm.vercel.app/docs/completion/input#optional-fields # pylint: disable=line-too-long
+        "response_format": {
+            "type": "json_object"
+        }
+    }
 
 
 class AnthropicModel(Model):
@@ -112,10 +123,7 @@ Text:
 
 class EeveModel(Model):
 
-  def completion(self,
-                 instruction: str,
-                 prompt: str,
-                 max_tokens: float = None) -> str:
+  def _get_completion_kwargs(self):
     json_template = {
         "type": "object",
         "properties": {
@@ -124,37 +132,12 @@ class EeveModel(Model):
             }
         }
     }
-    messages = [{
-        "role":
-            "system",
-        "content":
-            instruction + """
-Output following this JSON format:
-{"result": "your result here"}"""
-    }, {
-        "role": "user",
-        "content": prompt
-    }]
-    try:
-      response = litellm.completion(
-          model=self.provider + "/" + self.name if self.provider else self.name,
-          api_key=self.api_key,
-          api_base=self.api_base,
-          messages=messages,
-          max_tokens=max_tokens,
-          extra_body={
-              "guided_json": json.dumps(json_template),
-              "guided_decoding_backend": "lm-format-enforcer"
-          })
-
-      json_response = response.choices[0].message.content
-      parsed_json = json.loads(json_response)
-      return parsed_json["result"]
-
-    except litellm.ContextWindowExceededError as e:
-      raise ContextWindowExceededError() from e
-    except json.JSONDecodeError as e:
-      raise RuntimeError(f"Failed to get JSON response: {e}") from e
+    return {
+        "extra_body": {
+            "guided_json": json.dumps(json_template),
+            "guided_decoding_backend": "lm-format-enforcer"
+        }
+    }
 
 
 supported_models: List[Model] = [
