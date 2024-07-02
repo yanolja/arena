@@ -51,7 +51,6 @@ Output following this JSON format:
     }]
 
     additional_kwargs = self._get_completion_kwargs()
-    print(f"additional_kwargs: {additional_kwargs}")
 
     try:
       response = litellm.completion(model=self.provider + "/" +
@@ -72,7 +71,6 @@ Output following this JSON format:
       raise RuntimeError(f"Failed to get JSON response: {e}") from e
 
   def _get_completion_kwargs(self):
-    return {
         # Ref: https://litellm.vercel.app/docs/completion/input#optional-fields # pylint: disable=line-too-long
         "response_format": {
             "type": "json_object"
@@ -124,7 +122,6 @@ Text:
 class EeveModel(Model):
 
   def _get_completion_kwargs(self):
-    json_template = {
         "type": "object",
         "properties": {
             "result": {
