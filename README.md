@@ -11,7 +11,7 @@ pinned: false
 
 # [Yanolja Arena](https://huggingface.co/spaces/yanolja/arena)
 
-Yanolja Arena is an open-source project designed to identify the most effective LLMs for summarization and translation tasks. It employs a comparative approach, evaluating two randomly selected models simultaneously and utilizing an ELO rating system to rank their performance.
+Yanolja Arena is an open-source project designed to identify the most effective LLMs for summarization and translation tasks. It employs a comparative approach, evaluating two randomly selected models simultaneously and utilizing the ELO rating system to rank their performance.
 
 Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/arena)
 

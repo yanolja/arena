@@ -91,11 +91,11 @@ with gr.Blocks(title="Yanolja Arena", css=css) as app:
   with gr.Accordion("How to Use", open=False):
     gr.Markdown("""
       1. **For Summaries:**
-        - Type or paste the text you want summarized into the prompt box.
+        - Enter the text you want summarized into the prompt box.
 
       2. **For Translations:**
         - Choose the language you're translating from and to.
-        - Type or paste the text you want translated into the prompt box.
+        - Enter the text you want translated into the prompt box.
 
       3. **Voting:**
         - After you see both results, pick which one you think is better.
