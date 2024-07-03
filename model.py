@@ -26,8 +26,6 @@ class Model:
       api_base: str = None,
       summarize_instruction: str = None,
       translate_instruction: str = None,
-      # If provider is "vertex_ai", then vertex_credentials should be provided.
-      vertex_credentials: str = None,
   ):
     self.name = name
     self.provider = provider
@@ -35,7 +33,6 @@ class Model:
     self.api_base = api_base
     self.summarize_instruction = summarize_instruction or DEFAULT_SUMMARIZE_INSTRUCTION  # pylint: disable=line-too-long
     self.translate_instruction = translate_instruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
-    self.vertex_credentials = vertex_credentials
 
   def completion(self,
                  instruction: str,
@@ -60,8 +57,6 @@ Output following this JSON format:
                                     api_base=self.api_base,
                                     messages=messages,
                                     max_tokens=max_tokens,
-                                    vertex_credentials=self.vertex_credentials
-                                    if self.provider == "vertex_ai" else None,
                                     **self._get_completion_kwargs())
 
       json_response = response.choices[0].message.content
@@ -123,6 +118,21 @@ Text:
     return result.removesuffix(suffix).strip()
 
 
+class VertexModel(Model):
+
+  def __init__(self, name: str, vertex_credentials: str):
+    super().__init__(name, provider="vertex_ai")
+    self.vertex_credentials = vertex_credentials
+
+  def _get_completion_kwargs(self):
+    return {
+        "response_format": {
+            "type": "json_object"
+        },
+        "vertex_credentials": self.vertex_credentials
+    }
+
+
 class EeveModel(Model):
 
   def _get_completion_kwargs(self):
@@ -150,9 +160,8 @@ supported_models: List[Model] = [
     AnthropicModel("claude-3-opus-20240229"),
     AnthropicModel("claude-3-sonnet-20240229"),
     AnthropicModel("claude-3-haiku-20240307"),
-    Model("gemini-1.5-pro-001",
-          provider="vertex_ai",
-          vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
+    VertexModel("gemini-1.5-pro-001",
+                vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
     Model("mistral-small-2402", provider="mistral"),
     Model("mistral-large-2402", provider="mistral"),
     Model("llama3-8b-8192", provider="groq"),
