@@ -50,8 +50,6 @@ Output following this JSON format:
         "content": prompt
     }]
 
-    additional_kwargs = self._get_completion_kwargs()
-
     try:
       response = litellm.completion(model=self.provider + "/" +
                                     self.name if self.provider else self.name,
@@ -59,7 +57,7 @@ Output following this JSON format:
                                     api_base=self.api_base,
                                     messages=messages,
                                     max_tokens=max_tokens,
-                                    **additional_kwargs)
+                                    **self._get_completion_kwargs())
 
       json_response = response.choices[0].message.content
       parsed_json = json.loads(json_response)
