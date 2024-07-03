@@ -82,7 +82,7 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def set_token(app: gr.Blocks):
+def set_token(app: gr.Blocks, token: gr.Textbox):
 
   def set_token_server():
     new_token = uuid4().hex
@@ -91,12 +91,10 @@ def set_token(app: gr.Blocks):
 
   set_token_client = """
   function(newToken) {
-    const expiresDateString = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `arena_token=${newToken}; expires=${expiresDateString};`;
+    localStorage.setItem("arena_token", newToken);
   }
   """
 
-  token = gr.Textbox(visible=False)
   app.load(fn=set_token_server, outputs=[token])
   token.change(fn=lambda _: None, js=set_token_client, inputs=[token])
 

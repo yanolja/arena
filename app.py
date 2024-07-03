@@ -80,7 +80,8 @@ css = """
 """
 
 with gr.Blocks(title="Yanolja Arena", css=css) as app:
-  set_token(app)
+  token = gr.Textbox(visible=False)
+  set_token(app, token)
 
   with gr.Row():
     gr.HTML("""
@@ -188,7 +189,7 @@ with gr.Blocks(title="Yanolja Arena", css=css) as app:
       ]).then(fn=get_responses,
               inputs=[
                   prompt_textarea, category_radio, source_language,
-                  target_language
+                  target_language, token
               ],
               outputs=response_boxes + model_names + [instruction_state])
   submit_event.success(fn=lambda: gr.Row(visible=True), outputs=vote_row)

@@ -3,7 +3,6 @@ This module contains functions for generating responses using LLMs.
 """
 
 import enum
-from http import cookies
 import logging
 from random import sample
 from typing import List
@@ -66,17 +65,13 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 
 def get_responses(prompt: str, category: str, source_lang: str,
-                  target_lang: str, request: gr.Request):
+                  target_lang: str, token: str):
   if not category:
     raise gr.Error("Please select a category.")
 
   if category == Category.TRANSLATE.value and (not source_lang or
                                                not target_lang):
     raise gr.Error("Please select source and target languages.")
-
-  cookie = cookies.SimpleCookie()
-  cookie.load(request.headers["cookie"])
-  token = cookie["arena_token"].value if "arena_token" in cookie else None
 
   try:
     rate_limiter.check_rate_limit(token)
