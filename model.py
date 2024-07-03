@@ -118,6 +118,21 @@ Text:
     return result.removesuffix(suffix).strip()
 
 
+class VertexModel(Model):
+
+  def __init__(self, name: str, vertex_credentials: str):
+    super().__init__(name, provider="vertex_ai")
+    self.vertex_credentials = vertex_credentials
+
+  def _get_completion_kwargs(self):
+    return {
+        "response_format": {
+            "type": "json_object"
+        },
+        "vertex_credentials": self.vertex_credentials
+    }
+
+
 class EeveModel(Model):
 
   def _get_completion_kwargs(self):
@@ -145,6 +160,8 @@ supported_models: List[Model] = [
     AnthropicModel("claude-3-opus-20240229"),
     AnthropicModel("claude-3-sonnet-20240229"),
     AnthropicModel("claude-3-haiku-20240307"),
+    VertexModel("gemini-1.5-pro-001",
+                vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
     Model("mistral-small-2402", provider="mistral"),
     Model("mistral-large-2402", provider="mistral"),
     Model("llama3-8b-8192", provider="groq"),
