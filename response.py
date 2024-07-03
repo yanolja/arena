@@ -3,6 +3,7 @@ This module contains functions for generating responses using LLMs.
 """
 
 import enum
+from http import cookies
 import logging
 from random import sample
 from typing import List
@@ -15,6 +16,8 @@ from leaderboard import db
 from model import ContextWindowExceededError
 from model import Model
 from model import supported_models
+import rate_limit
+from rate_limit import rate_limiter
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -63,13 +66,31 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 
 def get_responses(prompt: str, category: str, source_lang: str,
-                  target_lang: str):
+                  target_lang: str, request: gr.Request):
   if not category:
     raise gr.Error("Please select a category.")
 
   if category == Category.TRANSLATE.value and (not source_lang or
                                                not target_lang):
     raise gr.Error("Please select source and target languages.")
+
+  cookie = cookies.SimpleCookie()
+  cookie.load(request.headers["cookie"])
+  token = cookie["arena_token"].value if "arena_token" in cookie else None
+
+  try:
+    rate_limiter.check_rate_limit(token)
+  except rate_limit.InvalidTokenException as e:
+    raise gr.Error(
+        "Your session has expired. Please refresh the page to continue.") from e
+  except rate_limit.UserRateLimitException as e:
+    raise gr.Error(
+        "You have made too many requests in a short period. Please try again later."  # pylint: disable=line-too-long
+    ) from e
+  except rate_limit.SystemRateLimitException as e:
+    raise gr.Error(
+        "Our service is currently experiencing high traffic. Please try again later."  # pylint: disable=line-too-long
+    ) from e
 
   models: List[Model] = sample(list(supported_models), 2)
   responses = []
