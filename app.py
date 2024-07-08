@@ -111,14 +111,14 @@ with gr.Blocks(title="Yanolja Arena", css=css) as app:
 
     source_language = gr.Dropdown(
         choices=SUPPORTED_LANGUAGES,
-        value="English",
+        value=lingua.Language.ENGLISH.name.capitalize(),
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
         choices=SUPPORTED_LANGUAGES,
-        value="Spanish",
+        value=lingua.Language.KOREAN.name.capitalize(),
         label="Target language",
         info="Choose the target language for translation.",
         interactive=True,
