@@ -55,7 +55,7 @@ class RateLimiter:
     self.scheduler.start()
 
   def check_rate_limit(self, token: str):
-    if not token or token not in self.last_request_times:
+    if not token or not self.token_exists(token):
       raise InvalidTokenException()
 
     if (datetime.now() - self.last_request_times[token]).seconds < 5:
@@ -70,6 +70,9 @@ class RateLimiter:
   def initialize_request(self, token: str):
     self.last_request_times[token] = datetime.min
 
+  def token_exists(self, token: str):
+    return token in self.last_request_times
+
   def _remove_old_tokens(self):
     for token, last_request_time in dict(self.last_request_times).items():
       if (datetime.now() - last_request_time).days >= 1:
@@ -82,23 +85,33 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def set_token(app: gr.Blocks):
+def set_token(app: gr.Blocks, token: gr.Textbox):
 
-  def set_token_server():
+  get_client_token = """
+  function() {
+    return localStorage.getItem("arena_token");
+  }
+  """
+
+  def set_server_token(existing_token):
+    if existing_token and rate_limiter.token_exists(existing_token):
+      return existing_token
+
     new_token = uuid4().hex
     rate_limiter.initialize_request(new_token)
     return new_token
 
-  set_token_client = """
+  set_client_token = """
   function(newToken) {
-    const expiresDateString = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `arena_token=${newToken}; expires=${expiresDateString};`;
+    localStorage.setItem("arena_token", newToken);
   }
   """
 
-  token = gr.Textbox(visible=False)
-  app.load(fn=set_token_server, outputs=[token])
-  token.change(fn=lambda _: None, js=set_token_client, inputs=[token])
+  app.load(fn=set_server_token,
+           js=get_client_token,
+           inputs=[token],
+           outputs=[token])
+  token.change(fn=lambda _: None, js=set_client_token, inputs=[token])
 
 
 def signal_handler(sig, frame):
