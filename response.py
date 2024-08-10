@@ -15,6 +15,8 @@ from db import db
 from model import ContextWindowExceededError
 from model import Model
 from model import supported_models
+import rate_limit
+from rate_limit import rate_limiter
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -63,7 +65,7 @@ def get_instruction(category: str, model: Model, source_lang: str,
 
 
 def get_responses(prompt: str, category: str, source_lang: str,
-                  target_lang: str):
+                  target_lang: str, token: str):
   if not category:
     raise gr.Error("Please select a category.")
 
@@ -71,19 +73,27 @@ def get_responses(prompt: str, category: str, source_lang: str,
                                                not target_lang):
     raise gr.Error("Please select source and target languages.")
 
+  try:
+    rate_limiter.check_rate_limit(token)
+  except rate_limit.InvalidTokenException as e:
+    raise gr.Error(
+        "Your session has expired. Please refresh the page to continue.") from e
+  except rate_limit.UserRateLimitException as e:
+    raise gr.Error(
+        "You have made too many requests in a short period. Please try again later."  # pylint: disable=line-too-long
+    ) from e
+  except rate_limit.SystemRateLimitException as e:
+    raise gr.Error(
+        "Our service is currently experiencing high traffic. Please try again later."  # pylint: disable=line-too-long
+    ) from e
+
   models: List[Model] = sample(list(supported_models), 2)
   responses = []
   for model in models:
     instruction = get_instruction(category, model, source_lang, target_lang)
     try:
       # TODO(#1): Allow user to set configuration.
-      response = model.completion(messages=[{
-          "role": "system",
-          "content": instruction
-      }, {
-          "role": "user",
-          "content": prompt
-      }])
+      response = model.completion(instruction, prompt)
       create_history(category, model.name, instruction, prompt, response)
       responses.append(response)
 

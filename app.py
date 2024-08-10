@@ -13,6 +13,7 @@ from leaderboard import build_leaderboard
 from leaderboard import SUPPORTED_LANGUAGES
 from model import check_models
 from model import supported_models
+from rate_limit import set_token
 import response
 from response import get_responses
 
@@ -79,7 +80,29 @@ css = """
 }
 """
 
-with gr.Blocks(title="Arena", css=css) as app:
+with gr.Blocks(title="Yanolja Arena", css=css) as app:
+  token = gr.Textbox(visible=False)
+  set_token(app, token)
+
+  with gr.Row():
+    gr.HTML("""
+    <h1 style="text-align: center; font-size: 28px; margin-bottom: 16px">Yanolja Arena</h1>
+    <p style="text-align: center; font-size: 16px">Yanolja Arena helps find the best LLMs for summarizing and translating text. We compare two random models at a time and use an ELO rating system to score them.</p>
+    <p style="text-align: center; font-size: 16px">This is an open-source project. Check it out on <a href="https://github.com/yanolja/arena">GitHub</a>.</p>
+    """)
+  with gr.Accordion("How to Use", open=False):
+    gr.Markdown("""
+      1. **For Summaries:**
+        - Enter the text you want summarized into the prompt box.
+
+      2. **For Translations:**
+        - Choose the language you're translating from and to.
+        - Enter the text you want translated into the prompt box.
+
+      3. **Voting:**
+        - After you see both results, pick which one you think is better.
+      """)
+
   with gr.Row():
     category_radio = gr.Radio(
         choices=[category.value for category in response.Category],
@@ -89,14 +112,14 @@ with gr.Blocks(title="Arena", css=css) as app:
 
     source_language = gr.Dropdown(
         choices=SUPPORTED_LANGUAGES,
-        value="English",
+        value=lingua.Language.ENGLISH.name.capitalize(),
         label="Source language",
         info="Choose the source language for translation.",
         interactive=True,
         visible=False)
     target_language = gr.Dropdown(
         choices=SUPPORTED_LANGUAGES,
-        value="Spanish",
+        value=lingua.Language.KOREAN.name.capitalize(),
         label="Target language",
         info="Choose the target language for translation.",
         interactive=True,
@@ -167,7 +190,7 @@ with gr.Blocks(title="Arena", css=css) as app:
       ]).then(fn=get_responses,
               inputs=[
                   prompt_textarea, category_radio, source_language,
-                  target_language
+                  target_language, token
               ],
               outputs=response_boxes + model_names + [instruction_state])
   submit_event.success(fn=lambda: gr.Row(visible=True), outputs=vote_row)
@@ -200,5 +223,5 @@ if __name__ == "__main__":
   check_models(supported_models)
 
   # We need to enable queue to use generators.
-  app.queue()
-  app.launch(debug=True)
+  app.queue(api_open=False)
+  app.launch(debug=True, show_api=False)

@@ -1,5 +1,5 @@
 ---
-title: Arena
+title: Yanolja Arena
 emoji: ⚔️
 colorFrom: red
 colorTo: purple
@@ -9,7 +9,9 @@ app_file: app.py
 pinned: false
 ---
 
-# [Arena](https://huggingface.co/spaces/yanolja/arena)
+# [Yanolja Arena](https://huggingface.co/spaces/yanolja/arena)
+
+Yanolja Arena is an open-source project designed to identify the most effective LLMs for summarization and translation tasks. It employs a comparative approach, evaluating two randomly selected models simultaneously and utilizing the ELO rating system to rank their performance.
 
 Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/arena)
 
@@ -46,9 +48,7 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
    Set your environment variables and run the app:
 
    ```shell
-   GOOGLE_CLOUD_PROJECT=<your project id> \
    CREDENTIALS_PATH=<your crednetials path> \
-   MODELS_SECRET=<your secret> \
    RATINGS_COLLECTION=<your collection> \
    SUMMARIZATIONS_COLLECTION=<your collection> \
    TRANSLATIONS_COLLECTION=<your collection> \
