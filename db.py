@@ -46,6 +46,7 @@ def get_ratings(category: Category, source_lang: str | None,
                 target_lang: str | None) -> List[Rating] | None:
   doc_id = "#".join([category.value] +
                     [lang for lang in (source_lang, target_lang) if lang])
+  # TODO(#37): Make it more clear what fields are in the document.
   doc_dict = db.collection(RATINGS_COLLECTION).document(doc_id).get().to_dict()
   if doc_dict is None:
     return None
@@ -58,11 +59,11 @@ def get_ratings(category: Category, source_lang: str | None,
 
 def set_ratings(category: Category, ratings: List[Rating], source_lang: str,
                 target_lang: str | None):
-  lower_source_lang = source_lang.lower()
-  lower_target_lang = target_lang.lower() if target_lang else None
+  source_lang_lowercase = source_lang.lower()
+  target_lang_lowercase = target_lang.lower() if target_lang else None
 
-  doc_id = "#".join([category.value, lower_source_lang] +
-                    ([lower_target_lang] if lower_target_lang else []))
+  doc_id = "#".join([category.value, source_lang_lowercase] +
+                    ([target_lang_lowercase] if target_lang_lowercase else []))
   doc_ref = db.collection(RATINGS_COLLECTION).document(doc_id)
 
   new_ratings = {rating.model: rating.rating for rating in ratings}
@@ -79,28 +80,28 @@ class Battle:
 
 def get_battles(category: Category, source_lang: str | None,
                 target_lang: str | None) -> List[Battle]:
-  lower_source_lang = source_lang.lower() if source_lang else None
-  lower_target_lang = target_lang.lower() if target_lang else None
+  source_lang_lowercase = source_lang.lower() if source_lang else None
+  target_lang_lowercase = target_lang.lower() if target_lang else None
 
   if category == Category.SUMMARIZATION:
     collection = db.collection(SUMMARIZATIONS_COLLECTION).order_by("timestamp")
 
-    if lower_source_lang:
+    if source_lang_lowercase:
       collection = collection.where(filter=base_query.FieldFilter(
-          "model_a_response_language", "==", lower_source_lang)).where(
+          "model_a_response_language", "==", source_lang_lowercase)).where(
               filter=base_query.FieldFilter("model_b_response_language", "==",
-                                            lower_source_lang))
+                                            source_lang_lowercase))
 
   elif category == Category.TRANSLATION:
     collection = db.collection(TRANSLATIONS_COLLECTION).order_by("timestamp")
 
-    if lower_source_lang:
+    if source_lang_lowercase:
       collection = collection.where(filter=base_query.FieldFilter(
-          "source_language", "==", lower_source_lang))
+          "source_language", "==", source_lang_lowercase))
 
-    if lower_target_lang:
+    if target_lang_lowercase:
       collection = collection.where(filter=base_query.FieldFilter(
-          "target_language", "==", lower_target_lang))
+          "target_language", "==", target_lang_lowercase))
 
   else:
     raise ValueError(f"Invalid category: {category}")

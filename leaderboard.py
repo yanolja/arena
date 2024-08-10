@@ -68,9 +68,10 @@ def load_elo_ratings(tab, source_lang: str, target_lang: str | None):
       [db.Rating(model, rating) for model, rating in computed_ratings.items()],
       source_lang, target_lang)
 
-  sorted_ratings = sorted(computed_ratings.items(),
-                          key=lambda x: x[1],
-                          reverse=True)
+  sorted_ratings = sorted(
+      computed_ratings.items(),
+      key=lambda x: x[1],  # rating
+      reverse=True)
 
   rank = 0
   last_rating = None
@@ -89,7 +90,8 @@ LEADERBOARD_UPDATE_INTERVAL = 600  # 10 minutes
 LEADERBOARD_INFO = "The leaderboard is updated every 10 minutes."
 
 
-def update_filtered_leaderboard(tab, source_lang: str, target_lang: str | None):
+def update_filtered_leaderboard(tab: str, source_lang: str,
+                                target_lang: str | None):
   new_value = load_elo_ratings(tab, source_lang, target_lang)
   return gr.update(value=new_value)
 
