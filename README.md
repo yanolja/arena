@@ -49,6 +49,9 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
 
    ```shell
    CREDENTIALS_PATH=<your crednetials path> \
+   RATINGS_COLLECTION=<your collection> \
+   SUMMARIZATIONS_COLLECTION=<your collection> \
+   TRANSLATIONS_COLLECTION=<your collection> \
    OPENAI_API_KEY=<your key> \
    ANTHROPIC_API_KEY=<your key> \
    MISTRAL_API_KEY=<your key> \

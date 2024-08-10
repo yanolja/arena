@@ -8,8 +8,8 @@ from firebase_admin import firestore
 import gradio as gr
 import lingua
 
+from db import db
 from leaderboard import build_leaderboard
-from leaderboard import db
 from leaderboard import SUPPORTED_LANGUAGES
 from model import check_models
 from model import supported_models
@@ -50,6 +50,7 @@ def vote(vote_button, response_a, response_b, model_a_name, model_b_name,
     language_a = detector.detect_language_of(response_a)
     language_b = detector.detect_language_of(response_b)
 
+    # TODO(#37): Move DB operations to db.py.
     doc_ref = db.collection("arena-summarizations").document(doc_id)
     doc["model_a_response_language"] = language_a.name.lower()
     doc["model_b_response_language"] = language_b.name.lower()
