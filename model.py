@@ -43,7 +43,7 @@ class Model:
             "system",
         "content":
             instruction + """
-Output following this JSON format:
+Output following this JSON format without using code blocks:
 {"result": "your result here"}"""
     }, {
         "role": "user",
@@ -166,6 +166,8 @@ supported_models: List[Model] = [
     Model("mistral-large-2402", provider="mistral"),
     Model("llama3-8b-8192", provider="groq"),
     Model("llama3-70b-8192", provider="groq"),
+    Model("google/gemma-2-9b-it", provider="deepinfra"),
+    Model("google/gemma-2-27b-it", provider="deepinfra"),
     EeveModel("yanolja/EEVE-Korean-Instruct-10.8B-v1.0",
               provider="openai",
               api_base=os.getenv("EEVE_API_BASE"),
@@ -177,7 +179,9 @@ def check_models(models: List[Model]):
   for model in models:
     print(f"Checking model {model.name}...")
     try:
-      model.completion("You are an AI model.", "Hello, world!")
+      model.completion(
+          """Output following this JSON format without using code blocks:
+{"result": "your result here"}""", "How are you?")
       print(f"Model {model.name} is available.")
 
     # This check is designed to verify the availability of the models

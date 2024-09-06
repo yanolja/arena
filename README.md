@@ -57,6 +57,7 @@ Get Involved: [Discuss and contribute on GitHub](https://github.com/yanolja/aren
    MISTRAL_API_KEY=<your key> \
    GEMINI_API_KEY=<your key> \
    GROQ_API_KEY=<your key> \
+   DEEPINFRA_API_KEY=<your key> \
    python3 app.py
    ```
 
