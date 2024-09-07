@@ -95,11 +95,11 @@ def get_responses(prompt: str, category: str, source_lang: str,
     instruction = get_instruction(category, model, source_lang, target_lang)
     try:
       # TODO(#1): Allow user to set configuration.
-      response, is_parsed = model.completion(instruction, prompt)
+      response, is_valid_response = model.completion(instruction, prompt)
       create_history(category, model.name, instruction, prompt, response)
       responses.append(response)
 
-      if not is_parsed:
+      if not is_valid_response:
         got_invalid_response = True
 
     except ContextWindowExceededError as e:
