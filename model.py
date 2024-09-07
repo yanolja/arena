@@ -4,7 +4,7 @@ This module contains functions to interact with the models.
 
 import json
 import os
-from typing import List
+from typing import List, Optional, Tuple
 
 import litellm
 
@@ -34,10 +34,12 @@ class Model:
     self.summarize_instruction = summarize_instruction or DEFAULT_SUMMARIZE_INSTRUCTION  # pylint: disable=line-too-long
     self.translate_instruction = translate_instruction or DEFAULT_TRANSLATE_INSTRUCTION  # pylint: disable=line-too-long
 
+  # Returns the parsed result or raw response, and whether parsing succeeded.
   def completion(self,
                  instruction: str,
                  prompt: str,
-                 max_tokens: float = None) -> str:
+                 max_tokens: Optional[float] = None,
+                 max_retries: int = 2) -> Tuple[str, bool]:
     messages = [{
         "role":
             "system",
@@ -50,23 +52,25 @@ Output following this JSON format without using code blocks:
         "content": prompt
     }]
 
-    try:
-      response = litellm.completion(model=self.provider + "/" +
-                                    self.name if self.provider else self.name,
-                                    api_key=self.api_key,
-                                    api_base=self.api_base,
-                                    messages=messages,
-                                    max_tokens=max_tokens,
-                                    **self._get_completion_kwargs())
+    for attempt in range(max_retries + 1):
+      try:
+        response = litellm.completion(model=self.provider + "/" +
+                                      self.name if self.provider else self.name,
+                                      api_key=self.api_key,
+                                      api_base=self.api_base,
+                                      messages=messages,
+                                      max_tokens=max_tokens,
+                                      **self._get_completion_kwargs())
 
-      json_response = response.choices[0].message.content
-      parsed_json = json.loads(json_response)
-      return parsed_json["result"]
+        json_response = response.choices[0].message.content
+        parsed_json = json.loads(json_response)
+        return parsed_json["result"], True
 
-    except litellm.ContextWindowExceededError as e:
-      raise ContextWindowExceededError() from e
-    except json.JSONDecodeError as e:
-      raise RuntimeError(f"Failed to get JSON response: {e}") from e
+      except litellm.ContextWindowExceededError as e:
+        raise ContextWindowExceededError() from e
+      except json.JSONDecodeError:
+        if attempt == max_retries:
+          return json_response, False
 
   def _get_completion_kwargs(self):
     return {
@@ -82,7 +86,8 @@ class AnthropicModel(Model):
   def completion(self,
                  instruction: str,
                  prompt: str,
-                 max_tokens: float = None) -> str:
+                 max_tokens: Optional[float] = None,
+                 max_retries: int = 2) -> Tuple[str, bool]:
     # Ref: https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/increase-consistency#prefill-claudes-response # pylint: disable=line-too-long
     prefix = "<result>"
     suffix = "</result>"
@@ -99,23 +104,27 @@ Text:
         "role": "assistant",
         "content": prefix
     }]
-    try:
-      response = litellm.completion(
-          model=self.provider + "/" + self.name if self.provider else self.name,
-          api_key=self.api_key,
-          api_base=self.api_base,
-          messages=messages,
-          max_tokens=max_tokens,
-      )
 
-    except litellm.ContextWindowExceededError as e:
-      raise ContextWindowExceededError() from e
+    for attempt in range(max_retries + 1):
+      try:
+        response = litellm.completion(
+            model=self.provider + "/" +
+            self.name if self.provider else self.name,
+            api_key=self.api_key,
+            api_base=self.api_base,
+            messages=messages,
+            max_tokens=max_tokens,
+        )
 
-    result = response.choices[0].message.content
-    if not result.endswith(suffix):
-      raise RuntimeError(f"Failed to get the formatted response: {result}")
+      except litellm.ContextWindowExceededError as e:
+        raise ContextWindowExceededError() from e
 
-    return result.removesuffix(suffix).strip()
+      result = response.choices[0].message.content
+      if result.endswith(suffix):
+        return result.removesuffix(suffix).strip(), True
+
+      if attempt == max_retries:
+        return result, False
 
 
 class VertexModel(Model):
@@ -164,8 +173,8 @@ supported_models: List[Model] = [
                 vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
     Model("mistral-small-2402", provider="mistral"),
     Model("mistral-large-2402", provider="mistral"),
-    Model("llama3-8b-8192", provider="groq"),
-    Model("llama3-70b-8192", provider="groq"),
+    Model("meta-llama/Meta-Llama-3-8B-Instruct", provider="deepinfra"),
+    Model("meta-llama/Meta-Llama-3-70B-Instruct", provider="deepinfra"),
     Model("google/gemma-2-9b-it", provider="deepinfra"),
     Model("google/gemma-2-27b-it", provider="deepinfra"),
     EeveModel("yanolja/EEVE-Korean-Instruct-10.8B-v1.0",
