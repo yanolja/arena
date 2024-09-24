@@ -22,6 +22,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 # TODO(#37): Move DB operations to db.py.
 def get_history_collection(category: str):
   if category == Category.SUMMARIZE.value:
@@ -89,13 +90,17 @@ def get_responses(prompt: str, category: str, source_lang: str,
 
   models: List[Model] = sample(list(supported_models), 2)
   responses = []
+  got_invalid_response = False
   for model in models:
     instruction = get_instruction(category, model, source_lang, target_lang)
     try:
       # TODO(#1): Allow user to set configuration.
-      response = model.completion(instruction, prompt)
+      response, is_valid_response = model.completion(instruction, prompt)
       create_history(category, model.name, instruction, prompt, response)
       responses.append(response)
+
+      if not is_valid_response:
+        got_invalid_response = True
 
     except ContextWindowExceededError as e:
       logger.exception("Context window exceeded for model %s.", model.name)
@@ -105,6 +110,9 @@ def get_responses(prompt: str, category: str, source_lang: str,
     except Exception as e:
       logger.exception("Failed to get response from model %s.", model.name)
       raise gr.Error("Failed to get response. Please try again.") from e
+
+  if got_invalid_response:
+    gr.Warning("An invalid response was received.")
 
   model_names = [model.name for model in models]
 
