@@ -142,45 +142,21 @@ class VertexModel(Model):
     }
 
 
-class EeveModel(Model):
-
-  def _get_completion_kwargs(self):
-    json_template = {
-        "type": "object",
-        "properties": {
-            "result": {
-                "type": "string"
-            }
-        }
-    }
-    return {
-        "extra_body": {
-            "guided_json": json.dumps(json_template),
-            "guided_decoding_backend": "lm-format-enforcer"
-        }
-    }
-
-
 supported_models: List[Model] = [
-    Model("gpt-4o-2024-05-13"),
-    Model("gpt-4-turbo-2024-04-09"),
-    Model("gpt-4-0125-preview"),
-    Model("gpt-3.5-turbo-0125"),
-    AnthropicModel("claude-3-opus-20240229"),
-    AnthropicModel("claude-3-sonnet-20240229"),
-    AnthropicModel("claude-3-haiku-20240307"),
+    Model("gpt-4o-2024-08-06"),
+    Model("gpt-4o-mini-2024-07-18"),
+    AnthropicModel("claude-3-5-sonnet-20240620"),
     VertexModel("gemini-1.5-pro-001",
                 vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
-    Model("mistral-small-2402", provider="mistral"),
-    Model("mistral-large-2402", provider="mistral"),
-    Model("meta-llama/Meta-Llama-3-8B-Instruct", provider="deepinfra"),
-    Model("meta-llama/Meta-Llama-3-70B-Instruct", provider="deepinfra"),
+    VertexModel("gemini-1.5-flash-preview-0514",
+                vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
+    Model("meta-llama/Meta-Llama-3.1-8B-Instruct", provider="deepinfra"),
+    Model("meta-llama/Meta-Llama-3.1-70B-Instruct", provider="deepinfra"),
+    Model("meta-llama/Meta-Llama-3.1-405B-Instruct", provider="deepinfra"),
+    Model("Qwen/Qwen2.5-72B-Instruct", provider="deepinfra"),
+    Model("Qwen/Qwen2-72B-Instruct", provider="deepinfra"),
     Model("google/gemma-2-9b-it", provider="deepinfra"),
     Model("google/gemma-2-27b-it", provider="deepinfra"),
-    EeveModel("yanolja/EEVE-Korean-Instruct-10.8B-v1.0",
-              provider="openai",
-              api_base=os.getenv("EEVE_API_BASE"),
-              api_key=os.getenv("EEVE_API_KEY")),
 ]
 
 
