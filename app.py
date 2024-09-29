@@ -103,6 +103,9 @@ with gr.Blocks(title="Yanolja Arena", css=css) as app:
         - After you see both results, pick which one you think is better.
       """)
 
+  with gr.Accordion("Available Models", open=False):
+    gr.Markdown("\n".join([f"- {model.name}" for model in supported_models]))
+
   with gr.Row():
     category_radio = gr.Radio(
         choices=[category.value for category in response.Category],
