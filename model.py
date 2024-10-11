@@ -146,17 +146,18 @@ supported_models: List[Model] = [
     Model("gpt-4o-2024-08-06"),
     Model("gpt-4o-mini-2024-07-18"),
     AnthropicModel("claude-3-5-sonnet-20240620"),
-    VertexModel("gemini-1.5-pro-001",
+    VertexModel("gemini-1.5-pro-002",
                 vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
-    VertexModel("gemini-1.5-flash-preview-0514",
+    VertexModel("gemini-1.5-flash-002",
                 vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
+    Model("google/gemma-2-9b-it", provider="deepinfra"),
+    Model("google/gemma-2-27b-it", provider="deepinfra"),
     Model("meta-llama/Meta-Llama-3.1-8B-Instruct", provider="deepinfra"),
     Model("meta-llama/Meta-Llama-3.1-70B-Instruct", provider="deepinfra"),
     Model("meta-llama/Meta-Llama-3.1-405B-Instruct", provider="deepinfra"),
+    Model("meta-llama/Llama-3.2-3B-Instruct", provider="deepinfra"),
+    Model("meta-llama/Llama-3.2-1B-Instruct", provider="deepinfra"),
     Model("Qwen/Qwen2.5-72B-Instruct", provider="deepinfra"),
-    Model("Qwen/Qwen2-72B-Instruct", provider="deepinfra"),
-    Model("google/gemma-2-9b-it", provider="deepinfra"),
-    Model("google/gemma-2-27b-it", provider="deepinfra"),
 ]
 
 
