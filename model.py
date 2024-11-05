@@ -146,6 +146,7 @@ supported_models: List[Model] = [
     Model("gpt-4o-2024-08-06"),
     Model("gpt-4o-mini-2024-07-18"),
     AnthropicModel("claude-3-5-sonnet-20241022"),
+    AnthropicModel("claude-3-5-haiku-20241022"),
     VertexModel("gemini-1.5-pro-002",
                 vertex_credentials=os.getenv("VERTEX_CREDENTIALS")),
     VertexModel("gemini-1.5-flash-002",
