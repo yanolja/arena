@@ -12,9 +12,9 @@ firebase-admin = "^6.5.0"
 google-cloud-aiplatform = "^1.57.0"
 google-cloud-secret-manager = "^2.20.0"
 google-generativeai = "^0.5.4"
-gradio = "^4.32.1"
+gradio = "^5.11.0"
 lingua-language-detector = "^2.0.2"
-litellm = "^1.40.26"
+litellm = "^1.44.8"
 
 [tool.poetry-auto-export]
 output = "requirements.txt"
